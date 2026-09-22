@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "build": "deno run --allow-read --allow-write scripts/build.ts",
+    "serve": "deno run --allow-read --allow-write scripts/build.ts && deno run --allow-net --allow-read jsr:@std/http@^1.0.0/file-server dist --port 8080",
+    "test": "deno test --allow-read --allow-write"
+  },
+  "imports": {
+    "@chrome-devtools/source-map-scopes-codec": "jsr:@chrome-devtools/source-map-scopes-codec@^0.9.0",
+    "@jridgewell/sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.5.0"
+  },
+  "compilerOptions": {
+    "strict": true
+  }
+}
