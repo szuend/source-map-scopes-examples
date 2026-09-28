@@ -114,6 +114,12 @@ builder
     ],
   })
   .endRange(genFuncEnd.line, genFuncEnd.column)
+  // Generated-only entry helper without corresponding authored code:
+  // emit a stack-frame range without a definition OriginalScope.
+  .startRange(genRunStart.line, genRunStart.column, {
+    isStackFrame: true,
+  })
+  .endRange(genRunEnd.line, genRunEnd.column)
   .endRange(genModuleEnd.line, genModuleEnd.column);`;
 
 export function createExample02(): ExampleDefinition {
@@ -127,6 +133,8 @@ export function createExample02(): ExampleDefinition {
   const genModuleEnd = gen.end();
   const genFuncStart = gen.at("(e) {");
   const genFuncEnd = gen.after("return { sensorId: e.sensorId, badge: r };\n}");
+  const genRunStart = gen.at("() {\n  return processSensorReading(");
+  const genRunEnd = gen.after("  });\n}");
 
   const step1Pos = gen.at("debugger;", 1);
   const step2Pos = gen.at("debugger;", 2);
@@ -187,6 +195,10 @@ export function createExample02(): ExampleDefinition {
       ],
     })
     .endRange(genFuncEnd.line, genFuncEnd.column)
+    .startRange(genRunStart.line, genRunStart.column, {
+      isStackFrame: true,
+    })
+    .endRange(genRunEnd.line, genRunEnd.column)
     .endRange(genModuleEnd.line, genModuleEnd.column);
 
   const mappings: MappingPoint[] = [

@@ -139,6 +139,12 @@ builder
   })
   .endRange(genLoopEnd.line, genLoopEnd.column)
   .endRange(genFuncEnd.line, genFuncEnd.column)
+  // Generated-only entry helper without corresponding authored code:
+  // emit a stack-frame range without a definition OriginalScope.
+  .startRange(genRunStart.line, genRunStart.column, {
+    isStackFrame: true,
+  })
+  .endRange(genRunEnd.line, genRunEnd.column)
   .endRange(genModuleEnd.line, genModuleEnd.column);`;
 
 export function createExample01(): ExampleDefinition {
@@ -156,6 +162,8 @@ export function createExample01(): ExampleDefinition {
   const genFuncEnd = gen.after("grandTotal: Number(g.toFixed(2)) };\n}");
   const genLoopStart = gen.at("for (const i of a) {");
   const genLoopEnd = gen.after("    debugger;\n  }");
+  const genRunStart = gen.at("() {\n  return calculateInvoice(");
+  const genRunEnd = gen.after("  );\n}");
 
   const builder = new SafeScopeInfoBuilder();
 
@@ -226,6 +234,10 @@ export function createExample01(): ExampleDefinition {
     })
     .endRange(genLoopEnd.line, genLoopEnd.column)
     .endRange(genFuncEnd.line, genFuncEnd.column)
+    .startRange(genRunStart.line, genRunStart.column, {
+      isStackFrame: true,
+    })
+    .endRange(genRunEnd.line, genRunEnd.column)
     .endRange(genModuleEnd.line, genModuleEnd.column);
 
   const mappings: MappingPoint[] = [

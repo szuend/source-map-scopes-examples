@@ -162,12 +162,21 @@ builder
   .endRange(genIfEnd.line, genIfEnd.column)
   .endRange(genHandlerEnd.line, genHandlerEnd.column)
   .endRange(genClosureEnd.line, genClosureEnd.column)
+  // Generated wrapper function that contains authored code from executeRateLimitCheck:
+  // keep definition scope pointer ('executeRateLimitCheck') and mark isHidden: true.
   .startRange(genAnonTrampolineStart.line, genAnonTrampolineStart.column, {
+    scopeKey: "executeRateLimitCheck",
     isStackFrame: true,
     isHidden: true,
+    values: [null, "handleRequest"],
   })
   .endRange(genAnonTrampolineEnd.line, genAnonTrampolineEnd.column)
   .endRange(genExecEnd.line, genExecEnd.column)
+  // Generated-only entry helper without corresponding authored code:
+  .startRange(genRunStart.line, genRunStart.column, {
+    isStackFrame: true,
+  })
+  .endRange(genRunEnd.line, genRunEnd.column)
   .endRange(genModuleEnd.line, genModuleEnd.column);`;
 
 export function createExample04(): ExampleDefinition {
@@ -212,6 +221,9 @@ export function createExample04(): ExampleDefinition {
 
   const genAnonTrampolineStart = gen.at("() {\n    return handleRequest");
   const genAnonTrampolineEnd = gen.after('    return handleRequest("192.0.2.44", 8);\n  }');
+
+  const genRunStart = gen.at("() {\n  return executeRateLimitCheck();");
+  const genRunEnd = gen.after("  return executeRateLimitCheck();\n}");
 
   const builder = new SafeScopeInfoBuilder();
 
@@ -293,11 +305,17 @@ export function createExample04(): ExampleDefinition {
     .endRange(genHandlerEnd.line, genHandlerEnd.column)
     .endRange(genClosureEnd.line, genClosureEnd.column)
     .startRange(genAnonTrampolineStart.line, genAnonTrampolineStart.column, {
+      scopeKey: "executeRateLimitCheck",
       isStackFrame: true,
       isHidden: true,
+      values: [null, "handleRequest"],
     })
     .endRange(genAnonTrampolineEnd.line, genAnonTrampolineEnd.column)
     .endRange(genExecEnd.line, genExecEnd.column)
+    .startRange(genRunStart.line, genRunStart.column, {
+      isStackFrame: true,
+    })
+    .endRange(genRunEnd.line, genRunEnd.column)
     .endRange(genModuleEnd.line, genModuleEnd.column);
 
   const mappings: MappingPoint[] = [

@@ -146,6 +146,15 @@ builder
   .endRange(genTierEnd.line, genTierEnd.column)
   .endRange(genCartEnd.line, genCartEnd.column)
   .endRange(genOrderEnd.line, genOrderEnd.column)
+  // Generated-only entry helpers without corresponding authored code:
+  .startRange(genRunStart.line, genRunStart.column, {
+    isStackFrame: true,
+  })
+  .endRange(genRunEnd.line, genRunEnd.column)
+  .startRange(genLogStart.line, genLogStart.column, {
+    isStackFrame: true,
+  })
+  .endRange(genLogEnd.line, genLogEnd.column)
   .endRange(genModuleEnd.line, genModuleEnd.column);`;
 
 export function createExample03(): ExampleDefinition {
@@ -180,6 +189,11 @@ export function createExample03(): ExampleDefinition {
   const genClampEnd = gen.after("    console.error(err);\n  }");
   const genTierEnd = gen.after("const d = s * (pct / 100);");
   const genCartEnd = gen.after("const p = Math.max(0, s - d - 15);");
+
+  const genRunStart = gen.at('() {\n  return processCustomerOrder("Grace Hopper", 240, 8, true);');
+  const genRunEnd = gen.after('return processCustomerOrder("Grace Hopper", 240, 8, true);\n}');
+  const genLogStart = gen.at('() {\n  const res = processCustomerOrder("Grace Hopper", 240, 8, false);');
+  const genLogEnd = gen.after("JSON.stringify(res);\n}");
 
   const builder = new SafeScopeInfoBuilder();
 
@@ -266,6 +280,14 @@ export function createExample03(): ExampleDefinition {
     .endRange(genTierEnd.line, genTierEnd.column)
     .endRange(genCartEnd.line, genCartEnd.column)
     .endRange(genOrderEnd.line, genOrderEnd.column)
+    .startRange(genRunStart.line, genRunStart.column, {
+      isStackFrame: true,
+    })
+    .endRange(genRunEnd.line, genRunEnd.column)
+    .startRange(genLogStart.line, genLogStart.column, {
+      isStackFrame: true,
+    })
+    .endRange(genLogEnd.line, genLogEnd.column)
     .endRange(genModuleEnd.line, genModuleEnd.column);
 
   const mappings: MappingPoint[] = [

@@ -194,7 +194,7 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
       <div class="prereq-banner">
         <div class="prereq-item">
           <strong>1. Enable DevTools Experiment</strong>
-          <span>In Chrome DevTools Settings (&⚙) &rarr; <em>Experiments</em>, enable <code>Use source map scopes</code> (or launch Chrome with the scopes feature enabled) and reload DevTools.</span>
+          <span>In Chrome DevTools Settings (&⚙) &rarr; <em>Experiments</em> or in <code>chrome://flags</code>, enable <code>Use source map scopes in Sources panel</code> and reload DevTools.</span>
         </div>
         <div class="prereq-item">
           <strong>2. Open Any Example Below</strong>

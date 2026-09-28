@@ -69,7 +69,19 @@ Deno.test("Example 03 encodes 3 nested inlined callSite ranges inside processCus
   assert(clampRange.callSite !== undefined, "clampPercentage has callSite");
 });
 
-Deno.test("Example 04 marks compiler trampoline ranges with isHidden: true", () => {
+Deno.test("Generated-only entry helpers have stack-frame ranges without a definition scope", () => {
+  for (const ex of getAllExamples()) {
+    const { decodedScopeInfo } = buildExampleSourceMap(ex);
+    const rootChildren = decodedScopeInfo.ranges[0].children;
+    const lastChild = rootChildren.at(-1)!;
+    assert(
+      lastChild.isStackFrame === true && lastChild.originalScope === undefined,
+      `Example ${ex.id} must emit a stack-frame range without an OriginalScope for its generated-only entry helper`,
+    );
+  }
+});
+
+Deno.test("Example 04 marks compiler trampoline ranges with isHidden: true and keeps definition scope when containing authored code", () => {
   const ex04 = getAllExamples().find(
     (e) => e.id === "04-closures-and-hidden-ranges",
   )!;
@@ -77,8 +89,19 @@ Deno.test("Example 04 marks compiler trampoline ranges with isHidden: true", () 
 
   const trampolineRange = decodedScopeInfo.ranges[0].children[0];
   assert(
-    trampolineRange.isHidden === true && trampolineRange.isStackFrame === true,
-    "Expected __withCompilerTrampoline range to have isHidden: true and isStackFrame: true",
+    trampolineRange.isHidden === true &&
+      trampolineRange.isStackFrame === true &&
+      trampolineRange.originalScope === undefined,
+    "Expected __withCompilerTrampoline range to have isHidden: true, isStackFrame: true, and no definition scope",
+  );
+
+  const execRange = decodedScopeInfo.ranges[0].children[1];
+  const anonWrapperRange = execRange.children[1];
+  assert(
+    anonWrapperRange.isHidden === true &&
+      anonWrapperRange.isStackFrame === true &&
+      anonWrapperRange.originalScope?.name === "executeRateLimitCheck",
+    "Expected anonymous wrapper containing authored code to keep definition scope 'executeRateLimitCheck' and have isHidden: true",
   );
 });
 
