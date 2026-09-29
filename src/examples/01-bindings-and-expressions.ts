@@ -73,6 +73,7 @@ const builderCodeSnippet = `const builder = new SafeScopeInfoBuilder();
 
 // 1. Original Scopes Tree (order-pricing.ts)
 builder
+  .startSource()
   .startScope(0, 0, {
     kind: "Module",
     key: "module",
@@ -104,7 +105,8 @@ builder
   })
   .endScope(loopEnd.line, loopEnd.column)
   .endScope(funcEnd.line, funcEnd.column)
-  .endScope(moduleEnd.line, moduleEnd.column);
+  .endScope(moduleEnd.line, moduleEnd.column)
+  .endSource();
 
 // 2. Generated Ranges & Binding Expressions (bundle.js)
 builder
@@ -169,6 +171,7 @@ export function createExample01(): ExampleDefinition {
   const builder = new SafeScopeInfoBuilder();
 
   builder
+    .startSource()
     .startScope(0, 0, {
       kind: "Module",
       key: "module",
@@ -205,7 +208,8 @@ export function createExample01(): ExampleDefinition {
     })
     .endScope(origLoopEnd.line, origLoopEnd.column)
     .endScope(origFuncEnd.line, origFuncEnd.column)
-    .endScope(origModuleEnd.line, origModuleEnd.column);
+    .endScope(origModuleEnd.line, origModuleEnd.column)
+    .endSource();
 
   builder
     .startRange(0, 0, {

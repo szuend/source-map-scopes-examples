@@ -50,9 +50,13 @@ export async function buildSite(): Promise<void> {
     await Deno.writeTextFile(new URL("./index.html", exampleDir), exampleHtml);
 
     console.log(
-      `✓ Built [${example.id}] -> scopes length: ${
+      `✓ Built [${example.id}] -> scopes: ${
         sourceMap.scopes?.length ?? 0
-      } chars, names: ${sourceMap.names?.length ?? 0}, hasVariableAndBindingInfo: ${decodedScopeInfo.hasVariableAndBindingInfo}`,
+      } source(s), ranges: ${
+        sourceMap.ranges?.length ?? 0
+      } line(s), names: ${
+        sourceMap.names?.length ?? 0
+      }, hasVariableAndBindingInfo: ${decodedScopeInfo.hasVariableAndBindingInfo}`,
     );
   }
 

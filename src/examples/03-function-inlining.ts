@@ -68,6 +68,7 @@ const builderCodeSnippet = `const builder = new SafeScopeInfoBuilder();
 
 // 1. Original Scopes: 4 distinct functions in inlining.ts
 builder
+  .startSource()
   .startScope(0, 0, {
     kind: "Module",
     key: "module",
@@ -110,7 +111,8 @@ builder
     variables: ["customerName", "subtotal", "loyaltyYears", "payable"],
   })
   .endScope(orderEnd.line, orderEnd.column)
-  .endScope(moduleEnd.line, moduleEnd.column);
+  .endScope(moduleEnd.line, moduleEnd.column)
+  .endSource();
 
 // 2. Generated Ranges: 3 nested inlined ranges (isStackFrame: false + callSite)
 //    inside the single physical function processCustomerOrder (isStackFrame: true)
@@ -198,6 +200,7 @@ export function createExample03(): ExampleDefinition {
   const builder = new SafeScopeInfoBuilder();
 
   builder
+    .startSource()
     .startScope(0, 0, {
       kind: "Module",
       key: "module",
@@ -246,7 +249,8 @@ export function createExample03(): ExampleDefinition {
       variables: ["customerName", "subtotal", "loyaltyYears", "payable"],
     })
     .endScope(orderEnd.line, orderEnd.column)
-    .endScope(origModuleEnd.line, origModuleEnd.column);
+    .endScope(origModuleEnd.line, origModuleEnd.column)
+    .endSource();
 
   builder
     .startRange(0, 0, {

@@ -7,7 +7,7 @@ function assert(condition: unknown, message: string): asserts condition {
   }
 }
 
-Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes", () => {
+Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();
   assert(examples.length === 4, "Expected 4 examples");
 
@@ -15,16 +15,25 @@ Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes", () 
     const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex);
 
     assert(
-      typeof sourceMap.scopes === "string" && sourceMap.scopes.length > 0,
-      `Example ${ex.id} must produce a non-empty encoded 'scopes' string`,
+      Array.isArray(sourceMap.scopes) &&
+        sourceMap.scopes.length === 1 &&
+        typeof sourceMap.scopes[0] === "string" &&
+        sourceMap.scopes[0].length > 0,
+      `Example ${ex.id} must produce a non-empty encoded 'scopes' array entry`,
+    );
+    assert(
+      Array.isArray(sourceMap.ranges) && sourceMap.ranges.length > 0,
+      `Example ${ex.id} must produce a non-empty encoded 'ranges' array`,
     );
     assert(
       decodedScopeInfo.hasVariableAndBindingInfo === true,
       `Example ${ex.id} must have variable and binding info`,
     );
     assert(
-      decodedScopeInfo.scopes.length === 1 && decodedScopeInfo.scopes[0] !== null,
-      `Example ${ex.id} must decode 1 root OriginalScope`,
+      decodedScopeInfo.scopes.length === 1 &&
+        Array.isArray(decodedScopeInfo.scopes[0]) &&
+        decodedScopeInfo.scopes[0].length === 1,
+      `Example ${ex.id} must decode 1 root OriginalScope for source 0`,
     );
     assert(
       decodedScopeInfo.ranges.length === 1,

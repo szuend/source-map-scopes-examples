@@ -1,12 +1,12 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@chrome-devtools/source-map-scopes-codec@0.9": "0.9.0",
+    "jsr:@chrome-devtools/source-map-scopes-codec@1": "1.0.0",
     "npm:@jridgewell/sourcemap-codec@^1.5.0": "1.6.0"
   },
   "jsr": {
-    "@chrome-devtools/source-map-scopes-codec@0.9.0": {
-      "integrity": "559501809e76333856aa637625b7c250f60dc2b29c00147b1dd86b9c990ed59a"
+    "@chrome-devtools/source-map-scopes-codec@1.0.0": {
+      "integrity": "aea8b7fa95005d474c151cb2b7e5081638442e1686289a3c0f116de73ec52de3"
     }
   },
   "npm": {
@@ -16,7 +16,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@chrome-devtools/source-map-scopes-codec@0.9",
+      "jsr:@chrome-devtools/source-map-scopes-codec@1",
       "npm:@jridgewell/sourcemap-codec@^1.5.0"
     ]
   }

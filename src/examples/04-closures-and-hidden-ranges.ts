@@ -82,6 +82,7 @@ const builderCodeSnippet = `const builder = new SafeScopeInfoBuilder();
 // 1. Original Scopes: Module -> Class (RateLimiter) -> Closure (createEndpointHandler)
 //    -> Function (handleRequest) -> Block (if allowed)
 builder
+  .startSource()
   .startScope(0, 0, {
     kind: "Module",
     key: "module",
@@ -124,7 +125,8 @@ builder
     variables: ["limiter", "handler"],
   })
   .endScope(execEnd.line, execEnd.column)
-  .endScope(moduleEnd.line, moduleEnd.column);
+  .endScope(moduleEnd.line, moduleEnd.column)
+  .endSource();
 
 // 2. Generated Ranges:
 //    - __withCompilerTrampoline is marked with isStackFrame: true, isHidden: true
@@ -228,6 +230,7 @@ export function createExample04(): ExampleDefinition {
   const builder = new SafeScopeInfoBuilder();
 
   builder
+    .startSource()
     .startScope(0, 0, {
       kind: "Module",
       key: "module",
@@ -270,7 +273,8 @@ export function createExample04(): ExampleDefinition {
       variables: ["limiter", "handler"],
     })
     .endScope(execEnd.line, execEnd.column)
-    .endScope(origModuleEnd.line, origModuleEnd.column);
+    .endScope(origModuleEnd.line, origModuleEnd.column)
+    .endSource();
 
   builder
     .startRange(0, 0, {

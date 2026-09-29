@@ -307,7 +307,11 @@ export function renderExampleHtml(
     .join("\n");
 
   const originalScopeTreesHtml = decodedScopeInfo.scopes
-    .map((s) => renderOriginalScopeTree(s))
+    .map((sourceScopes) =>
+      sourceScopes
+        ? sourceScopes.map((s) => renderOriginalScopeTree(s)).join("")
+        : `<div class="scope-tree-node">null</div>`
+    )
     .join("");
 
   const generatedRangeTreesHtml = decodedScopeInfo.ranges

@@ -53,6 +53,7 @@ window.runExample02 = function() {
 const builderCodeSnippet = `const builder = new SafeScopeInfoBuilder();
 
 builder
+  .startSource()
   .startScope(0, 0, {
     kind: "Module",
     key: "module",
@@ -71,7 +72,8 @@ builder
     ],
   })
   .endScope(origFuncEnd.line, origFuncEnd.column)
-  .endScope(origModuleEnd.line, origModuleEnd.column);
+  .endScope(origModuleEnd.line, origModuleEnd.column)
+  .endSource();
 
 // SubRangeBinding[] tracks how the single generated variable 'r'
 // is reused across Phase 1, Phase 2, and Phase 3!
@@ -143,6 +145,7 @@ export function createExample02(): ExampleDefinition {
   const builder = new SafeScopeInfoBuilder();
 
   builder
+    .startSource()
     .startScope(0, 0, {
       kind: "Module",
       key: "module",
@@ -161,7 +164,8 @@ export function createExample02(): ExampleDefinition {
       ],
     })
     .endScope(origFuncEnd.line, origFuncEnd.column)
-    .endScope(origModuleEnd.line, origModuleEnd.column);
+    .endScope(origModuleEnd.line, origModuleEnd.column)
+    .endSource();
 
   builder
     .startRange(0, 0, {
