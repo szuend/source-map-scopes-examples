@@ -27,8 +27,7 @@ export function calculateInvoice(customer: Customer, items: LineItem[]) {
   let subtotal = 0;
   for (const item of items) {
     const lineTotal = item.unitPrice * item.quantity;
-    subtotal += lineTotal;
-    debugger; // Pause 1: Inspect Block & Function scopes inside loop
+    subtotal += lineTotal; // Try a Conditional Breakpoint here: item.quantity > 1 && lineTotal < 100
   }
 
   const discountRate = isVip ? 0.15 : 0.0;
@@ -37,7 +36,7 @@ export function calculateInvoice(customer: Customer, items: LineItem[]) {
   const shippingFee = discountedSubtotal >= FREE_SHIPPING_MIN ? 0 : 12.99;
   const grandTotal = discountedSubtotal + taxAmount + shippingFee;
 
-  debugger; // Pause 2: Inspect folded constants & synthesized expressions
+  debugger; // Pause: Inspect folded constants, autocomplete & synthesized expressions
 
   return {
     recipient: fullName,
@@ -51,7 +50,6 @@ const generatedCode = `function calculateInvoice(c, a) {
   let s = 0;
   for (const i of a) {
     s += i.unitPrice * i.quantity;
-    debugger;
   }
   const d = s * (c.tier === "vip" ? 0.85 : 1);
   const g = d * 1.085 + (d >= 100 ? 0 : 12.99);
@@ -63,7 +61,8 @@ window.runExample01 = function() {
     { firstName: "Ada", lastName: "Lovelace", tier: "vip" },
     [
       { sku: "MECH-KB", unitPrice: 140, quantity: 1 },
-      { sku: "USB-C-CABLE", unitPrice: 22.5, quantity: 2 }
+      { sku: "USB-C-CABLE", unitPrice: 22.5, quantity: 2 },
+      { sku: "KEYCAP-SET", unitPrice: 65, quantity: 1 }
     ]
   );
 };
@@ -155,13 +154,15 @@ export function createExample01(): ExampleDefinition {
   const origFuncStart = orig.at("(customer: Customer");
   const origFuncEnd = orig.after("  };\n}");
   const origLoopStart = orig.at("for (const item of items) {");
-  const origLoopEnd = orig.after("    debugger; // Pause 1: Inspect Block & Function scopes inside loop\n  }");
+  const origLoopEnd = orig.after(
+    "    subtotal += lineTotal; // Try a Conditional Breakpoint here: item.quantity > 1 && lineTotal < 100\n  }",
+  );
 
   const genModuleEnd = gen.end();
   const genFuncStart = gen.at("(c, a) {");
   const genFuncEnd = gen.after("grandTotal: Number(g.toFixed(2)) };\n}");
   const genLoopStart = gen.at("for (const i of a) {");
-  const genLoopEnd = gen.after("    debugger;\n  }");
+  const genLoopEnd = gen.after("    s += i.unitPrice * i.quantity;\n  }");
   const genRunStart = gen.at("() {\n  return calculateInvoice(");
   const genRunEnd = gen.after("  );\n}");
 
@@ -275,8 +276,9 @@ export function createExample01(): ExampleDefinition {
       orig: orig.at("subtotal += lineTotal;"),
     },
     {
-      gen: gen.at("debugger;", 1),
-      orig: orig.at("debugger; // Pause 1"),
+      gen: gen.at("i.unitPrice * i.quantity;"),
+      orig: orig.at("const lineTotal = item.unitPrice * item.quantity;"),
+      name: "lineTotal",
     },
     {
       gen: gen.at("const d ="),
@@ -289,8 +291,8 @@ export function createExample01(): ExampleDefinition {
       name: "grandTotal",
     },
     {
-      gen: gen.at("debugger;", 2),
-      orig: orig.at("debugger; // Pause 2"),
+      gen: gen.at("debugger;"),
+      orig: orig.at("debugger; // Pause: Inspect folded constants"),
     },
     {
       gen: gen.at("return { recipient:"),
@@ -315,6 +317,8 @@ export function createExample01(): ExampleDefinition {
     devtoolsFeatures: [
       "Scope Sidebar Reconstruction",
       "Inline Variable Hints & Hover Popovers",
+      "Scope-Aware Autocomplete Suggestions",
+      "Conditional Breakpoints with Original Names",
       "Console Debug Evaluate (AST Substitution)",
     ],
     originalFileName: "order-pricing.ts",
@@ -328,53 +332,61 @@ export function createExample01(): ExampleDefinition {
         Production minifiers rename identifiers (<code>customer</code> &rarr; <code>c</code>), fold module constants directly into arithmetic (<code>TAX_RATE = 0.085</code> disappears), eliminate unused variables (<code>rawAuditToken</code>), and inline single-use variables like <code>fullName</code>, <code>isVip</code>, <code>lineTotal</code>, and <code>taxAmount</code>.
       </p>
       <p>
-        With the <strong>Scopes proposal</strong>, each <code>GeneratedRange</code> provides a <code>values</code> array mapping every variable in its <code>OriginalScope</code> to an arbitrary JavaScript binding expression (or <code>null</code> when optimized out). Chrome DevTools evaluates these expressions on the fly to populate the <strong>Scope</strong> sidebar, render <strong>inline variable hints</strong>, and power <strong>Debug Evaluate</strong> in the Console.
+        With the <strong>Scopes proposal</strong>, each <code>GeneratedRange</code> provides a <code>values</code> array mapping every variable in its <code>OriginalScope</code> to an arbitrary JavaScript binding expression (or <code>null</code> when optimized out). Chrome DevTools uses this information to reconstruct the <strong>Scope</strong> sidebar, render <strong>inline variable hints</strong>, populate <strong>autocomplete suggestions</strong> with original variable names, and evaluate <strong>Conditional Breakpoints</strong> and <strong>Console expressions</strong> via <code>debug evaluate</code>.
       </p>
     `,
     debugSteps: [
       {
         featureTag: "Scope View",
-        title: "Pause at Loop Iteration (Pause 1) & Check Block Scope",
+        title: "Pause & Inspect Folded Constants, Synthesized Expressions & <unavailable>",
         instruction:
-          'Open Chrome DevTools (F12), switch to the "Sources" panel, and click "Run & Pause in Debugger" on this page. Execution will pause at the first `debugger;` inside the `for..of` loop in `order-pricing.ts`.',
+          'Open Chrome DevTools (F12), switch to the "Sources" panel, and click "Run & Pause in Debugger". Execution pauses at `debugger;` in `order-pricing.ts`.',
         expectedObservation:
-          'In the right-hand "Scope" pane, inspect the "Block" scope: both `item` (bound to `i`) and `lineTotal` (synthesized via `i.unitPrice * i.quantity`, even though no `lineTotal` variable exists in `bundle.js`!) are displayed with their live values (`140`).',
-      },
-      {
-        featureTag: "Scope View",
-        title: "Resume to Pause 2 & Inspect Folded Constants and <unavailable>",
-        instruction:
-          "Press F8 (Resume script execution) twice to exit the 2-item loop and stop at Pause 2 (`debugger;` before the `return` statement).",
-        expectedObservation:
-          'In the "Scope" pane under `calculateInvoice` and `Module`: `fullName` (`"Ada Lovelace"`), `isVip` (`true`), `discountRate` (`0.15`), `taxAmount` (`13.36625`), `TAX_RATE` (`0.085`), and `CURRENCY` (`"USD"`) are all reconstructed. Meanwhile, `rawAuditToken` (which was dead-code eliminated and bound to `null`) cleanly displays as `<unavailable>`.',
+          'In the "Scope" pane under `calculateInvoice` and `Module`: `fullName` (`"Ada Lovelace"`), `isVip` (`true`), `subtotal` (`250`), `discountRate` (`0.15`), `discountedSubtotal` (`212.5`), `taxAmount` (`18.0625`), `TAX_RATE` (`0.085`), and `CURRENCY` (`"USD"`) are all reconstructed. Meanwhile, `rawAuditToken` (bound to `null`) cleanly displays as `<unavailable>`.',
       },
       {
         featureTag: "Inline Hints & Popover",
         title: "Verify Editor Inline Variable Hints & Hover Popovers",
         instruction:
-          "While paused at Pause 2 in `order-pricing.ts`, look at the orange/gray inline value hints at the end of lines 19–35 and hover your mouse cursor over `customer`, `discountedSubtotal`, `taxAmount`, and `TAX_RATE` in the editor.",
+          "While paused in `order-pricing.ts`, look at the inline value hints at the end of lines 19–34 and hover your mouse cursor over `customer`, `discountedSubtotal`, `taxAmount`, and `TAX_RATE` in the editor.",
         expectedObservation:
           "DevTools displays inline hints for the authored TypeScript variables and opens an interactive object popover when hovering over `customer` or synthesized expressions like `taxAmount`.",
+      },
+      {
+        featureTag: "Autocomplete",
+        title: "Try Scope-Aware Autocomplete Suggestions in the Console",
+        instruction:
+          "While paused, press `Esc` to open the Console drawer and start typing prefixes of authored identifiers such as `disc`, `tax`, `FREE_`, or `fullN`.",
+        expectedObservation:
+          "Chrome DevTools includes the original TypeScript variable and constant names (`discountRate`, `discountedSubtotal`, `taxAmount`, `FREE_SHIPPING_MIN`, `fullName`) from the active `OriginalScope` chain directly in the autocomplete dropdown!",
+      },
+      {
+        featureTag: "Conditional Breakpoints",
+        title: "Set a Conditional Breakpoint Inside the Loop Using Original Variable Names",
+        instruction:
+          'In `order-pricing.ts`, right-click line 26 (`subtotal += lineTotal;`) inside the `for..of` loop, select "Add conditional breakpoint...", and enter `item.quantity > 1 && lineTotal < 100` (notice autocomplete suggests `item` and `lineTotal`!). Press `Enter`, resume (`F8`), and click "Run & Pause in Debugger" again.',
+        expectedObservation:
+          'Because conditional breakpoints use `debug evaluate` under the hood, DevTools evaluates `i.quantity > 1 && (i.unitPrice * i.quantity) < 100` on each iteration: it skips item 1 (`MECH-KB`, `qty: 1, lineTotal: 140`), pauses inside the `Block` scope ONLY on item 2 (`USB-C-CABLE`, `qty: 2, lineTotal: 45`), and skips item 3 (`KEYCAP-SET`, `qty: 1`)!',
       },
       {
         featureTag: "Debug Evaluate",
         title: "Evaluate Authored Expressions in the DevTools Console",
         instruction:
-          "While paused at Pause 2, press `Esc` to open the Console drawer and evaluate the test expressions below.",
+          "While paused at either the conditional breakpoint or the `debugger;` statement, evaluate the test expressions below in the Console.",
         expectedObservation:
-          "DevTools parses your Console input into an AST, substitutes original identifiers (`fullName`, `taxAmount`, `TAX_RATE`, `CURRENCY`) with their binding expressions from the source map, and evaluates the result in V8.",
+          "DevTools parses your Console input into an AST, substitutes original identifiers (`fullName`, `taxAmount`, `TAX_RATE`, `CURRENCY`, `lineTotal`) with their binding expressions from the source map, and evaluates the result in V8.",
       },
     ],
     evalExpressions: [
       {
         expression: '`${fullName} (${CURRENCY}): $${grandTotal.toFixed(2)}`',
-        expectedResult: '"Ada Lovelace (USD): $170.62"',
+        expectedResult: '"Ada Lovelace (USD): $230.56"',
         explanation:
           "Combines synthesized expression `fullName` (`c.firstName + ' ' + c.lastName`), folded constant `CURRENCY` (`'USD'`), and renamed local `grandTotal` (`g`).",
       },
       {
         expression: "discountedSubtotal + taxAmount + shippingFee",
-        expectedResult: "170.61625",
+        expectedResult: "230.5625",
         explanation:
           "Evaluates arithmetic across renamed register `d` (`discountedSubtotal`) and two non-existent variables (`taxAmount` -> `d * 0.085`, `shippingFee` -> `d >= 100 ? 0 : 12.99`).",
       },

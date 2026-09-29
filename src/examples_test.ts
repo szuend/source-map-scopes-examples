@@ -121,7 +121,7 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
   };
   assert(res01.recipient === "Ada Lovelace", "Ex01 recipient");
   assert(res01.currency === "USD", "Ex01 currency");
-  assert(res01.grandTotal === 170.62, "Ex01 grandTotal");
+  assert(res01.grandTotal === 230.56, "Ex01 grandTotal");
 
   const res02 = fakeWindow.runExample02() as {
     sensorId: string;

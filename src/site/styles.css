@@ -211,7 +211,7 @@ p code, li code, td code {
 /* Feature Capability Strip */
 .capabilities-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 2.5rem;
 }
@@ -263,6 +263,16 @@ p code, li code, td code {
 .tag-eval {
   background: var(--accent-green-bg);
   color: var(--accent-green);
+}
+
+.tag-auto {
+  background: hsla(198, 90%, 60%, 0.14);
+  color: hsl(198, 92%, 68%);
+}
+
+.tag-bp {
+  background: hsla(14, 88%, 60%, 0.14);
+  color: hsl(14, 92%, 68%);
 }
 
 .capability-card h3 {

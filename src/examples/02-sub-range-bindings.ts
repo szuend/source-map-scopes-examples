@@ -263,6 +263,7 @@ export function createExample02(): ExampleDefinition {
     devtoolsFeatures: [
       "Dynamic Scope View Updates Across PC Steps",
       "Context-Sensitive Inline Hints & Popovers",
+      "Sub-Range Autocomplete & Conditional Breakpoints",
       "PC-Aware Console Debug Evaluate",
     ],
     originalFileName: "register-reuse.ts",
@@ -305,6 +306,14 @@ export function createExample02(): ExampleDefinition {
           "Press F8 (Resume) once more to stop at `debugger; // Step 3`, where `r` is overwritten with the formatted string.",
         expectedObservation:
           '`statusBadge` becomes `"[CORE-TEMP-04] 75.0°C (WARN)"` (bound to `r`), `calibratedMv` transitions to `<unavailable>` (its register was clobbered by a string), and `temperatureCelsius` (`75`) stays live via its fallback sub-range expression.',
+      },
+      {
+        featureTag: "Autocomplete",
+        title: "Test Autocomplete Suggestions & Sub-Range Conditional Breakpoints",
+        instruction:
+          'While paused, type `cal`, `temp`, or `statusB` in the Console to see `calibratedMv`, `temperatureCelsius`, and `statusBadge` in the autocomplete list. You can also right-click line 19 (`const statusBadge = ...`) and add a Conditional Breakpoint with condition `temperatureCelsius >= 70 && calibratedMv === 1250`.',
+        expectedObservation:
+          "At line 19, even though `r` was already overwritten with `temperatureCelsius` (`75`), DevTools resolves both `temperatureCelsius` (`r`) and `calibratedMv` (`r * 10 + 500`) from their respective sub-range bindings when evaluating the conditional breakpoint!",
       },
       {
         featureTag: "Debug Evaluate",

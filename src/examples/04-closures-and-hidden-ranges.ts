@@ -384,6 +384,7 @@ export function createExample04(): ExampleDefinition {
     devtoolsFeatures: [
       "Hiding Internal Trampoline Frames in Call Stack",
       "Multi-Scope Chain Reconstruction (Block + Local + Closure + Module)",
+      "Multi-Scope Autocomplete & Closure Conditional Breakpoints",
       "Closure Variable Evaluation in Console Debug Evaluate",
     ],
     originalFileName: "closures-hidden.ts",
@@ -398,7 +399,7 @@ export function createExample04(): ExampleDefinition {
       </p>
       <p>
         This example demonstrates two key features of the Scopes proposal:
-        <br/>1) Marking <code>__withCompilerTrampoline</code>'s range with <code>isHidden: true</code> so Chrome DevTools automatically strips internal compiler frames from the Call Stack.
+        <br/>1) Marking <code>__withCompilerTrampoline</code>'s range with <code>isHidden: true</code> (and retaining the definition scope pointer on wrappers that contain authored code) so Chrome DevTools automatically strips internal compiler frames from the Call Stack.
         <br/>2) Reconstructing the outer <code>createEndpointHandler</code> closure scope from <code>_c[0..3]</code> alongside the inner <code>handleRequest</code> function scope and <code>if (allowed)</code> block scope.
       </p>
     `,
@@ -420,12 +421,20 @@ export function createExample04(): ExampleDefinition {
           'You will see: (1) `Block` scope with `burstUtilization: 40`, (2) `handleRequest` Function scope with `clientIp: "192.0.2.44"`, `requestWeight: 8`, `remainingTokens: 30`, `allowed: true`, (3) `createEndpointHandler` Closure scope with `endpointName: "/api/v2/inference"`, `maxBurst: 50`, `windowSeconds: 60`, `usedTokens: 20` (all unpacked from `_c[0..3]`), and (4) `Module` scope with `DEFAULT_REGION: "us-central1"`.',
       },
       {
-        featureTag: "Inline Hints & Popover",
-        title: "Hover Over Captured Closure Variables in the Editor",
+        featureTag: "Autocomplete",
+        title: "Autocomplete Across Block, Local, Closure & Module Scopes",
         instruction:
-          "In `closures-hidden.ts`, hover over `usedTokens`, `maxBurst`, and `endpointName` inside `handleRequest`.",
+          "While paused at `debugger;`, open the Console and type `burst` (Block), `rem` (Function), `endp` or `usedT` (Closure), and `DEFAULT_` (Module).",
         expectedObservation:
-          "DevTools resolves the captured identifiers through the outer `createEndpointHandler` range bindings (`_c[3]`, `_c[1]`, `_c[0]`) and shows their live values (`20`, `50`, `\"/api/v2/inference\"`).",
+          "DevTools aggregates original variable names from every enclosing `OriginalScope` in the lexical hierarchy and offers them in the autocomplete menu!",
+      },
+      {
+        featureTag: "Conditional Breakpoints",
+        title: "Set a Conditional Breakpoint Referencing Tuple-Packed Closure State",
+        instruction:
+          'Right-click line 25 (`return { region: DEFAULT_REGION, ... }`) in `closures-hidden.ts`, choose "Add conditional breakpoint...", and enter `burstUtilization >= 40 && usedTokens === 20`.',
+        expectedObservation:
+          "DevTools rewrites `burstUtilization` to `util` and `usedTokens` to `_c[3]` under the hood, evaluating the condition to `true` and pausing at the `return` statement.",
       },
       {
         featureTag: "Debug Evaluate",

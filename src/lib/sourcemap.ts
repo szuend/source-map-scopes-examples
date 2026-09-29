@@ -26,7 +26,9 @@ export interface DebugStep {
     | "Call Stack"
     | "Scope View"
     | "Inline Hints & Popover"
-    | "Debug Evaluate";
+    | "Debug Evaluate"
+    | "Autocomplete"
+    | "Conditional Breakpoints";
 }
 
 export interface EvalExpression {

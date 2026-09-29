@@ -351,6 +351,7 @@ export function createExample03(): ExampleDefinition {
     devtoolsFeatures: [
       "Virtual Call Stack Frame Reconstruction",
       "Per-Frame Call-Site Highlighting in Editor",
+      "Per-Frame Autocomplete & Inlined Conditional Breakpoints",
       "Frame-Sensitive Scope Sidebar & Console Debug Evaluate",
     ],
     originalFileName: "inlining.ts",
@@ -364,7 +365,7 @@ export function createExample03(): ExampleDefinition {
         Modern bundlers and compilers aggressively inline small helper functions. Here, <code>processCustomerOrder</code> calls <code>calculateCartTotal</code>, which calls <code>computeTierDiscount</code>, which calls <code>clampPercentage</code>. In <code>bundle.js</code>, all three helpers are completely inlined into <code>processCustomerOrder(n, s, y)</code>.
       </p>
       <p>
-        By nesting three <code>GeneratedRange</code> entries with <code>isStackFrame: false</code> and <code>callSite</code> coordinates inside <code>processCustomerOrder</code>'s range, Chrome DevTools synthesizes the full 4-frame <strong>Call Stack</strong>. Clicking any inlined frame in the Call Stack pane switches the editor to that caller's call site and updates both the <strong>Scope</strong> view and <strong>Console Debug Evaluate</strong> to that frame's lexical variables!
+        By nesting three <code>GeneratedRange</code> entries with <code>isStackFrame: false</code> and <code>callSite</code> coordinates inside <code>processCustomerOrder</code>'s range, Chrome DevTools synthesizes the full 4-frame <strong>Call Stack</strong>. Clicking any inlined frame in the Call Stack pane switches the editor to that caller's call site and updates the <strong>Scope</strong> view, <strong>Autocomplete suggestions</strong>, and <strong>Console Debug Evaluate</strong> to that frame's lexical variables!
       </p>
     `,
     debugSteps: [
@@ -385,12 +386,20 @@ export function createExample03(): ExampleDefinition {
           'Selecting `clampPercentage` shows `value: 32`, `min: 5`, `max: 25`, `clamped: 25`. Selecting `computeTierDiscount` highlights `clampPercentage(rawPercent, 5, 25)` on line 11 and updates the Scope pane to `baseAmount: 240`, `loyaltyYears: 8`, `rawPercent: 32`, `effectivePercent: 25`! Selecting `calculateCartTotal` shows `couponFixed: 15`.',
       },
       {
-        featureTag: "Inline Hints & Popover",
-        title: "Inspect Frame-Specific Inline Variable Hints",
+        featureTag: "Autocomplete",
+        title: "Observe Frame-Contextual Autocomplete Suggestions",
         instruction:
-          "As you select different inlined frames in the Call Stack pane, look at the inline variable hints inside that function in `inlining.ts`.",
+          "Select `computeTierDiscount` in the Call Stack and start typing `rawP` or `eff` in the Console; then select `calculateCartTotal` and type `coup` or `disc`.",
         expectedObservation:
-          "DevTools updates the inline variable hints and hover popovers in the editor to reflect the currently selected inlined frame.",
+          "DevTools dynamically updates the Console autocomplete suggestions to match the `OriginalScope` variables of whichever inlined stack frame you currently have selected!",
+      },
+      {
+        featureTag: "Conditional Breakpoints",
+        title: "Set a Conditional Breakpoint Inside an Inlined Function",
+        instruction:
+          'In `inlining.ts`, right-click line 12 (`return baseAmount * (effectivePercent / 100);` inside `computeTierDiscount`), choose "Add conditional breakpoint...", and enter `rawPercent > effectivePercent`. Resume and click "Run & Pause in Debugger" again.',
+        expectedObservation:
+          "Even though `computeTierDiscount` was completely inlined into `processCustomerOrder`, DevTools evaluates `(y * 4) > pct` (`32 > 25` -> `true`) and pauses inside the inlined `computeTierDiscount` frame!",
       },
       {
         featureTag: "Debug Evaluate",
