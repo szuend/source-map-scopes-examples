@@ -338,43 +338,52 @@ export function createExample01(): ExampleDefinition {
     debugSteps: [
       {
         featureTag: "Scope View",
-        title: "Pause & Inspect Folded Constants, Synthesized Expressions & <unavailable>",
-        instruction:
-          'Open Chrome DevTools (F12), switch to the "Sources" panel, and click "Run & Pause in Debugger". Execution pauses at `debugger;` in `order-pricing.ts`.',
-        expectedObservation:
-          'In the "Scope" pane under `calculateInvoice` and `Module`: `fullName` (`"Ada Lovelace"`), `isVip` (`true`), `subtotal` (`250`), `discountRate` (`0.15`), `discountedSubtotal` (`212.5`), `taxAmount` (`18.0625`), `TAX_RATE` (`0.085`), and `CURRENCY` (`"USD"`) are all reconstructed. Meanwhile, `rawAuditToken` (bound to `null`) cleanly displays as `<unavailable>`.',
+        title: "Inspect Reconstructed Variables & Eliminated Bindings",
+        tryPrompt:
+          'Click **"Run & Pause in Debugger"** with DevTools open (`Sources` panel) to pause at `debugger;` in `order-pricing.ts`.',
+        checkPoints: [
+          '**Local Scope (`calculateInvoice`):** `fullName` (`"Ada Lovelace"`), `isVip` (`true`), `subtotal` (`250`), `discountRate` (`0.15`), `discountedSubtotal` (`212.5`), and `taxAmount` (`18.0625`) are all reconstructed from binding expressions.',
+          '**Module Scope:** Folded constants `TAX_RATE` (`0.085`), `CURRENCY` (`"USD"`), and `FREE_SHIPPING_MIN` (`100`) appear in the `Module` section.',
+          '**Eliminated Variable:** `rawAuditToken` (bound to `null`) displays cleanly as `<unavailable>`.',
+        ],
       },
       {
         featureTag: "Inline Hints & Popover",
-        title: "Verify Editor Inline Variable Hints & Hover Popovers",
-        instruction:
-          "While paused in `order-pricing.ts`, look at the inline value hints at the end of lines 19–34 and hover your mouse cursor over `customer`, `discountedSubtotal`, `taxAmount`, and `TAX_RATE` in the editor.",
-        expectedObservation:
-          "DevTools displays inline hints for the authored TypeScript variables and opens an interactive object popover when hovering over `customer` or synthesized expressions like `taxAmount`.",
+        title: "Check Editor Inline Hints & Hover Popovers",
+        tryPrompt:
+          "While paused in `order-pricing.ts`, inspect the editor lines 19–34 and hover over variables in the source code.",
+        checkPoints: [
+          "**Inline Value Hints:** Authored variables (`subtotal`, `discountedSubtotal`, `grandTotal`) show live inline values at the end of their lines.",
+          "**Hover Popovers:** Hovering over `customer`, `taxAmount`, or `TAX_RATE` opens an interactive preview evaluated from the source map binding.",
+        ],
       },
       {
         featureTag: "Autocomplete",
-        title: "Try Scope-Aware Autocomplete Suggestions in the Console",
-        instruction:
-          "While paused, press `Esc` to open the Console drawer and start typing prefixes of authored identifiers such as `disc`, `tax`, `FREE_`, or `fullN`.",
-        expectedObservation:
-          "Chrome DevTools includes the original TypeScript variable and constant names (`discountRate`, `discountedSubtotal`, `taxAmount`, `FREE_SHIPPING_MIN`, `fullName`) from the active `OriginalScope` chain directly in the autocomplete dropdown!",
+        title: "Test Scope-Aware Console Autocomplete",
+        tryPrompt:
+          "Open the Console drawer (`Esc`) while paused and type prefixes like `disc`, `tax`, `FREE_`, or `fullN`.",
+        checkPoints: [
+          "**Original Identifiers Suggested:** Autocomplete offers `discountRate`, `discountedSubtotal`, `taxAmount`, `FREE_SHIPPING_MIN`, and `fullName` directly from the active `OriginalScope` chain.",
+        ],
       },
       {
         featureTag: "Conditional Breakpoints",
-        title: "Set a Conditional Breakpoint Inside the Loop Using Original Variable Names",
-        instruction:
-          'In `order-pricing.ts`, right-click line 26 (`subtotal += lineTotal;`) inside the `for..of` loop, select "Add conditional breakpoint...", and enter `item.quantity > 1 && lineTotal < 100` (notice autocomplete suggests `item` and `lineTotal`!). Press `Enter`, resume (`F8`), and click "Run & Pause in Debugger" again.',
-        expectedObservation:
-          'Because conditional breakpoints use `debug evaluate` under the hood, DevTools evaluates `i.quantity > 1 && (i.unitPrice * i.quantity) < 100` on each iteration: it skips item 1 (`MECH-KB`, `qty: 1, lineTotal: 140`), pauses inside the `Block` scope ONLY on item 2 (`USB-C-CABLE`, `qty: 2, lineTotal: 45`), and skips item 3 (`KEYCAP-SET`, `qty: 1`)!',
+        title: "Break Conditionally Inside the Loop Using Original Names",
+        tryPrompt:
+          "Right-click line 26 (`subtotal += lineTotal;`), add a conditional breakpoint `item.quantity > 1 && lineTotal < 100`, resume (`F8`), and click **\"Run & Pause in Debugger\"** again.",
+        checkPoints: [
+          "**Autocomplete in Condition Input:** Typing `item` and `lineTotal` in the breakpoint dialog offers scope-aware suggestions.",
+          '**Targeted Pause on Item #2:** V8 skips item 1 (`MECH-KB`, `qty: 1, lineTotal: 140`), pauses inside the `Block` scope only on item 2 (`USB-C-CABLE`, `qty: 2, lineTotal: 45`), and skips item 3.',
+        ],
       },
       {
         featureTag: "Debug Evaluate",
-        title: "Evaluate Authored Expressions in the DevTools Console",
-        instruction:
-          "While paused at either the conditional breakpoint or the `debugger;` statement, evaluate the test expressions below in the Console.",
-        expectedObservation:
-          "DevTools parses your Console input into an AST, substitutes original identifiers (`fullName`, `taxAmount`, `TAX_RATE`, `CURRENCY`, `lineTotal`) with their binding expressions from the source map, and evaluates the result in V8.",
+        title: "Evaluate Authored Expressions in the Console",
+        tryPrompt:
+          "Copy and run the test expressions below in the DevTools Console while paused.",
+        checkPoints: [
+          "**Transparent AST Rewriting:** Expressions mixing `fullName`, `taxAmount`, `shippingFee`, and `TAX_RATE` are automatically rewritten to their underlying `bundle.js` bindings (`c`, `d * 0.085`, etc.) before evaluation.",
+        ],
       },
     ],
     evalExpressions: [

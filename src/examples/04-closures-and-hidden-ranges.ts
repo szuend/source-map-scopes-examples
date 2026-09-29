@@ -406,43 +406,52 @@ export function createExample04(): ExampleDefinition {
     debugSteps: [
       {
         featureTag: "Call Stack",
-        title: "Verify Hidden Trampoline Frames Are Filtered from Call Stack",
-        instruction:
-          'Open DevTools ("Sources" panel) and click "Run & Pause in Debugger". Execution pauses inside `handleRequest` in `closures-hidden.ts`.',
-        expectedObservation:
-          'Check the "Call Stack" pane: `handleRequest` is called directly by `executeRateLimitCheck`. Even though `bundle.js` routes execution through `__withCompilerTrampoline(function() { ... })`, both trampoline ranges are marked `isHidden: true` and are hidden from the stack trace!',
+        title: "Verify Hidden Trampoline Frames Are Omitted from Call Stack",
+        tryPrompt:
+          'Click **"Run & Pause in Debugger"** to pause inside `handleRequest` in `closures-hidden.ts` and inspect the **Call Stack** pane.',
+        checkPoints: [
+          "**Clean Call Stack:** `handleRequest` appears called directly by `executeRateLimitCheck`.",
+          "**Hidden Runtime Wrappers:** Both `__withCompilerTrampoline` and its anonymous callback (`isHidden: true`) are automatically omitted from the stack trace.",
+        ],
       },
       {
         featureTag: "Scope View",
-        title: "Inspect the Full Scope Chain (Block -> Local -> Closure -> Module)",
-        instruction:
-          'Look at the "Scope" sidebar while paused at `debugger;` on line 24 of `closures-hidden.ts`.',
-        expectedObservation:
-          'You will see: (1) `Block` scope with `burstUtilization: 40`, (2) `handleRequest` Function scope with `clientIp: "192.0.2.44"`, `requestWeight: 8`, `remainingTokens: 30`, `allowed: true`, (3) `createEndpointHandler` Closure scope with `endpointName: "/api/v2/inference"`, `maxBurst: 50`, `windowSeconds: 60`, `usedTokens: 20` (all unpacked from `_c[0..3]`), and (4) `Module` scope with `DEFAULT_REGION: "us-central1"`.',
+        title: "Inspect the Multi-Level Scope Chain (Block -> Local -> Closure -> Module)",
+        tryPrompt:
+          "While paused at `debugger;` on line 24 of `closures-hidden.ts`, expand each section in the **Scope** sidebar.",
+        checkPoints: [
+          "**Block Scope (`if (allowed)`):** Shows `burstUtilization: 40`.",
+          '**Local Scope (`handleRequest`):** Shows `clientIp: "192.0.2.44"`, `requestWeight: 8`, `remainingTokens: 30`, and synthesized `allowed: true`.',
+          '**Closure Scope (`createEndpointHandler`):** Unpacks tuple `_c[0..3]` into `endpointName: "/api/v2/inference"`, `maxBurst: 50`, `windowSeconds: 60`, and `usedTokens: 20`.',
+          '**Module Scope:** Shows `DEFAULT_REGION: "us-central1"` (and `RateLimitConfig` as `<unavailable>`).',
+        ],
       },
       {
         featureTag: "Autocomplete",
-        title: "Autocomplete Across Block, Local, Closure & Module Scopes",
-        instruction:
-          "While paused at `debugger;`, open the Console and type `burst` (Block), `rem` (Function), `endp` or `usedT` (Closure), and `DEFAULT_` (Module).",
-        expectedObservation:
-          "DevTools aggregates original variable names from every enclosing `OriginalScope` in the lexical hierarchy and offers them in the autocomplete menu!",
+        title: "Autocomplete Across Block, Function, Closure & Module Scopes",
+        tryPrompt:
+          "Open the Console (`Esc`) while paused and type prefixes from different scope levels: `burst`, `rem`, `endp`, `usedT`, and `DEFAULT_`.",
+        checkPoints: [
+          "**Full Lexical Chain Aggregation:** Autocomplete merges variables from the `Block`, `Function`, outer `Closure`, and `Module` scopes.",
+        ],
       },
       {
         featureTag: "Conditional Breakpoints",
-        title: "Set a Conditional Breakpoint Referencing Tuple-Packed Closure State",
-        instruction:
-          'Right-click line 25 (`return { region: DEFAULT_REGION, ... }`) in `closures-hidden.ts`, choose "Add conditional breakpoint...", and enter `burstUtilization >= 40 && usedTokens === 20`.',
-        expectedObservation:
-          "DevTools rewrites `burstUtilization` to `util` and `usedTokens` to `_c[3]` under the hood, evaluating the condition to `true` and pausing at the `return` statement.",
+        title: "Break Conditionally on Tuple-Packed Closure State",
+        tryPrompt:
+          'Right-click line 25 (`return { region: DEFAULT_REGION, ... }`), add a conditional breakpoint `burstUtilization >= 40 && usedTokens === 20`, resume (`F8`), and re-run.',
+        checkPoints: [
+          "**Cross-Scope Condition Rewriting:** DevTools rewrites `burstUtilization` to `util` and `usedTokens` to `_c[3]`, pausing cleanly at the `return` statement.",
+        ],
       },
       {
         featureTag: "Debug Evaluate",
-        title: "Evaluate Expressions Mixing Block, Local, and Closure Scopes",
-        instruction:
-          "Open the Console drawer (`Esc`) while paused and run the expressions below.",
-        expectedObservation:
-          "DevTools seamlessly combines identifiers from the `Block` (`burstUtilization`), `Local` (`remainingTokens`), `Closure` (`endpointName`, `usedTokens`, `maxBurst`), and `Module` (`DEFAULT_REGION`) scopes in a single expression!",
+        title: "Evaluate Expressions Mixing All 4 Scope Levels",
+        tryPrompt:
+          "Run the expressions below in the Console while paused at `debugger;`.",
+        checkPoints: [
+          "**Multi-Scope Substitution:** A single expression can seamlessly combine `DEFAULT_REGION` (Module), `endpointName` / `usedTokens` / `maxBurst` (Closure), `remainingTokens` / `allowed` (Function), and `burstUtilization` (Block).",
+        ],
       },
     ],
     evalExpressions: [

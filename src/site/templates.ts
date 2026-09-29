@@ -14,7 +14,9 @@ function escapeHtml(str: string): string {
 }
 
 function formatInlineBackticks(text: string): string {
-  return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+  return escapeHtml(text)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
 function renderCodeTable(code: string): string {
@@ -273,16 +275,18 @@ export function renderExampleHtml(
 
   const stepsHtml = example.debugSteps
     .map(
-      (step, i) => `<div class="step-item">
+      (step) => `<div class="step-item">
         <div class="step-header">
-          <div class="step-num-title">
-            <span class="step-index">${i + 1}</span>
+          <label class="step-num-title">
+            <input type="checkbox" class="step-checkbox" />
             <span>${escapeHtml(step.title)}</span>
-          </div>
+          </label>
           <span class="capability-tag ${renderFeatureTagClass(step.featureTag)}" style="margin-bottom: 0;">${escapeHtml(step.featureTag)}</span>
         </div>
-        <p class="step-instruction">${formatInlineBackticks(step.instruction)}</p>
-        <p class="step-expected"><strong>Expected in DevTools:</strong> ${formatInlineBackticks(step.expectedObservation)}</p>
+        <p class="try-prompt"><span class="try-label">Try:</span>${formatInlineBackticks(step.tryPrompt)}</p>
+        <ul class="check-list">
+          ${step.checkPoints.map((pt) => `<li>${formatInlineBackticks(pt)}</li>`).join("")}
+        </ul>
       </div>`,
     )
     .join("\n");
@@ -375,7 +379,7 @@ export function renderExampleHtml(
         </section>
 
         <section class="panel-card">
-          <h2>Step-by-Step DevTools Debugging Guide</h2>
+          <h2>What to Try &amp; Verify in DevTools</h2>
           <div class="steps-list">
             ${stepsHtml}
           </div>
@@ -471,6 +475,17 @@ export function renderExampleHtml(
           }
         });
       }
+
+      // Checklist toggle
+      const checkboxes = document.querySelectorAll(".step-checkbox");
+      checkboxes.forEach(function(cb) {
+        cb.addEventListener("change", function() {
+          const card = cb.closest(".step-item");
+          if (card) {
+            card.classList.toggle("checked", cb.checked);
+          }
+        });
+      });
 
       // Tab switcher
       const tabButtons = document.querySelectorAll(".tab-btn");

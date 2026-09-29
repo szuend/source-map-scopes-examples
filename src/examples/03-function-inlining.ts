@@ -371,43 +371,50 @@ export function createExample03(): ExampleDefinition {
     debugSteps: [
       {
         featureTag: "Call Stack",
-        title: "Inspect the 4-Frame Virtual Call Stack in DevTools",
-        instruction:
-          'Open DevTools ("Sources" panel) and click "Run & Pause in Debugger". Execution pauses at `debugger;` on line 5 of `inlining.ts` (`clampPercentage`).',
-        expectedObservation:
-          'Look at the "Call Stack" pane: even though only one JS function (`processCustomerOrder`) is executing in V8, DevTools shows 4 frames: `clampPercentage` (line 5), `computeTierDiscount` (line 11), `calculateCartTotal` (line 20), and `processCustomerOrder` (line 30).',
+        title: "Inspect the 4-Frame Virtual Call Stack",
+        tryPrompt:
+          'Click **"Run & Pause in Debugger"** to pause at `debugger;` on line 5 of `inlining.ts` (`clampPercentage`).',
+        checkPoints: [
+          "**4 Virtual Frames from 1 Physical Frame:** Even though only `processCustomerOrder` exists in `bundle.js`, the Call Stack pane shows `clampPercentage` (line 5) &rarr; `computeTierDiscount` (line 11) &rarr; `calculateCartTotal` (line 20) &rarr; `processCustomerOrder` (line 30).",
+        ],
       },
       {
         featureTag: "Scope View",
-        title: "Click Up and Down the Inlined Call Stack Frames",
-        instruction:
-          'In the "Call Stack" pane, click on `computeTierDiscount`, then `calculateCartTotal`, then `processCustomerOrder`, and watch both the editor highlight and the "Scope" sidebar.',
-        expectedObservation:
-          'Selecting `clampPercentage` shows `value: 32`, `min: 5`, `max: 25`, `clamped: 25`. Selecting `computeTierDiscount` highlights `clampPercentage(rawPercent, 5, 25)` on line 11 and updates the Scope pane to `baseAmount: 240`, `loyaltyYears: 8`, `rawPercent: 32`, `effectivePercent: 25`! Selecting `calculateCartTotal` shows `couponFixed: 15`.',
+        title: "Navigate Up and Down the Inlined Call Stack Frames",
+        tryPrompt:
+          'Click each frame in the **Call Stack** pane (`clampPercentage`, `computeTierDiscount`, `calculateCartTotal`, `processCustomerOrder`) and watch the editor and **Scope** pane.',
+        checkPoints: [
+          "**`clampPercentage` Frame:** Shows `value: 32`, `min: 5`, `max: 25`, `clamped: 25`.",
+          "**`computeTierDiscount` Frame:** Highlights the call site on line 11 (`clampPercentage(rawPercent, 5, 25)`) and switches Scope variables to `baseAmount: 240`, `loyaltyYears: 8`, `rawPercent: 32`, `effectivePercent: 25`.",
+          "**`calculateCartTotal` Frame:** Highlights line 20 and shows `subtotal: 240`, `loyaltyYears: 8`, `couponFixed: 15`.",
+        ],
       },
       {
         featureTag: "Autocomplete",
-        title: "Observe Frame-Contextual Autocomplete Suggestions",
-        instruction:
-          "Select `computeTierDiscount` in the Call Stack and start typing `rawP` or `eff` in the Console; then select `calculateCartTotal` and type `coup` or `disc`.",
-        expectedObservation:
-          "DevTools dynamically updates the Console autocomplete suggestions to match the `OriginalScope` variables of whichever inlined stack frame you currently have selected!",
+        title: "Verify Frame-Contextual Console Autocomplete",
+        tryPrompt:
+          "Select `computeTierDiscount` in the Call Stack and type `rawP` or `eff` in the Console; then switch to `calculateCartTotal` and type `coup`.",
+        checkPoints: [
+          "**Per-Frame Suggestions:** Autocomplete dynamically updates to suggest the lexical variables of whichever virtual inlined frame is currently selected.",
+        ],
       },
       {
         featureTag: "Conditional Breakpoints",
-        title: "Set a Conditional Breakpoint Inside an Inlined Function",
-        instruction:
-          'In `inlining.ts`, right-click line 12 (`return baseAmount * (effectivePercent / 100);` inside `computeTierDiscount`), choose "Add conditional breakpoint...", and enter `rawPercent > effectivePercent`. Resume and click "Run & Pause in Debugger" again.',
-        expectedObservation:
-          "Even though `computeTierDiscount` was completely inlined into `processCustomerOrder`, DevTools evaluates `(y * 4) > pct` (`32 > 25` -> `true`) and pauses inside the inlined `computeTierDiscount` frame!",
+        title: "Set a Conditional Breakpoint Inside an Inlined Helper",
+        tryPrompt:
+          'Right-click line 12 (`return baseAmount * (effectivePercent / 100);` inside `computeTierDiscount`), set conditional breakpoint `rawPercent > effectivePercent`, resume (`F8`), and click **"Run & Pause in Debugger"** again.',
+        checkPoints: [
+          "**Inlined Condition Evaluation:** DevTools evaluates `(y * 4) > pct` (`32 > 25` &rarr; `true`) and pauses directly inside the inlined `computeTierDiscount` frame.",
+        ],
       },
       {
         featureTag: "Debug Evaluate",
-        title: "Run Frame-Contextual Debug Evaluate in Console",
-        instruction:
-          "Select `clampPercentage` in the Call Stack and evaluate `value > max` in Console; then select `calculateCartTotal` in the Call Stack and evaluate `subtotal - couponFixed`.",
-        expectedObservation:
-          "Console evaluation automatically resolves identifiers against the selected virtual frame's `OriginalScope` and `GeneratedRange` bindings.",
+        title: "Run Frame-Contextual Debug Evaluate in the Console",
+        tryPrompt:
+          "Select different frames in the Call Stack and run the corresponding expressions below in the Console.",
+        checkPoints: [
+          "**Frame-Relative Resolution:** Identical variable names (like `subtotal`) or frame-specific parameters (`rawPercent`, `couponFixed`) resolve against the selected virtual frame's `GeneratedRange`.",
+        ],
       },
     ],
     evalExpressions: [

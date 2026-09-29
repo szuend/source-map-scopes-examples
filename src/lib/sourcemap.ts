@@ -20,8 +20,8 @@ export interface MappingPoint {
 
 export interface DebugStep {
   title: string;
-  instruction: string;
-  expectedObservation: string;
+  tryPrompt: string;
+  checkPoints: string[];
   featureTag:
     | "Call Stack"
     | "Scope View"

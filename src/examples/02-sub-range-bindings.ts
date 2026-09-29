@@ -286,42 +286,53 @@ export function createExample02(): ExampleDefinition {
       {
         featureTag: "Scope View",
         title: "Step 1: Pause After Voltage Calibration",
-        instruction:
-          'Open DevTools ("Sources" panel) and click "Run & Pause in Debugger". Execution stops at `debugger; // Step 1` in `register-reuse.ts`.',
-        expectedObservation:
-          'In the "Scope" sidebar, `calibratedMv` is `1250` (bound to `r`), while `temperatureCelsius` and `statusBadge` are both marked `<unavailable>` because their sub-range bindings have `value: undefined` prior to initialization.',
+        tryPrompt:
+          'Click **"Run & Pause in Debugger"** to stop at `debugger; // Step 1` in `register-reuse.ts` (where `let r = 1250`).',
+        checkPoints: [
+          "**Active Binding:** `calibratedMv` displays `1250` (bound directly to `r`).",
+          "**Pre-Initialization Liveness:** `temperatureCelsius` and `statusBadge` both display `<unavailable>` instead of leaking `r`'s current value.",
+        ],
       },
       {
         featureTag: "Scope View",
         title: "Step 2: Resume to Celsius Conversion & Observe Register Reuse",
-        instruction:
-          "Press F8 (Resume) once to advance to `debugger; // Step 2`. In `bundle.js`, `r` was just overwritten with `(r - 500) / 10` (`75`).",
-        expectedObservation:
-          '`temperatureCelsius` now becomes available with value `75` (bound to `r`), AND `calibratedMv` remains `1250` because its active sub-range `[step2Pos, step3Pos)` switches its binding expression to `"r * 10 + 500"`! `statusBadge` is still `<unavailable>`.',
+        tryPrompt:
+          "Press `F8` (Resume) once to advance to `debugger; // Step 2` (where `r` is overwritten with `75`).",
+        checkPoints: [
+          "**Reassigned Register:** `temperatureCelsius` becomes live with value `75` (now bound to `r`).",
+          '**Reverse Algebraic Binding:** `calibratedMv` stays `1250` because its active sub-range `[step2Pos, step3Pos)` switches its binding expression to `"r * 10 + 500"`.',
+          "**Still Uninitialized:** `statusBadge` remains `<unavailable>`.",
+        ],
       },
       {
         featureTag: "Inline Hints & Popover",
         title: "Step 3: Resume to Status Badge Formatting",
-        instruction:
-          "Press F8 (Resume) once more to stop at `debugger; // Step 3`, where `r` is overwritten with the formatted string.",
-        expectedObservation:
-          '`statusBadge` becomes `"[CORE-TEMP-04] 75.0°C (WARN)"` (bound to `r`), `calibratedMv` transitions to `<unavailable>` (its register was clobbered by a string), and `temperatureCelsius` (`75`) stays live via its fallback sub-range expression.',
+        tryPrompt:
+          "Press `F8` (Resume) once more to reach `debugger; // Step 3` (where `r` is overwritten with the badge string).",
+        checkPoints: [
+          '**New Register Owner:** `statusBadge` becomes `"[CORE-TEMP-04] 75.0°C (WARN)"` (bound to `r`).',
+          "**Clobbered Register:** `calibratedMv` transitions to `<unavailable>` because `r` now holds a string.",
+          "**Fallback Expression:** `temperatureCelsius` (`75`) stays live via `(e.rawMillivolts + e.calibrationOffset - 500) / 10`.",
+        ],
       },
       {
-        featureTag: "Autocomplete",
-        title: "Test Autocomplete Suggestions & Sub-Range Conditional Breakpoints",
-        instruction:
-          'While paused, type `cal`, `temp`, or `statusB` in the Console to see `calibratedMv`, `temperatureCelsius`, and `statusBadge` in the autocomplete list. You can also right-click line 19 (`const statusBadge = ...`) and add a Conditional Breakpoint with condition `temperatureCelsius >= 70 && calibratedMv === 1250`.',
-        expectedObservation:
-          "At line 19, even though `r` was already overwritten with `temperatureCelsius` (`75`), DevTools resolves both `temperatureCelsius` (`r`) and `calibratedMv` (`r * 10 + 500`) from their respective sub-range bindings when evaluating the conditional breakpoint!",
+        featureTag: "Conditional Breakpoints",
+        title: "Test Autocomplete & Sub-Range Conditional Breakpoints",
+        tryPrompt:
+          "Type `cal`, `temp`, or `statusB` in the Console to check autocomplete, or set a conditional breakpoint on line 19 (`const statusBadge = ...`) with condition `temperatureCelsius >= 70 && calibratedMv === 1250`.",
+        checkPoints: [
+          "**Autocomplete:** All three coalesced variables appear in Console and breakpoint autocomplete.",
+          "**Sub-Range Condition Evaluation:** At line 19, DevTools simultaneously resolves `temperatureCelsius` (`r`) and `calibratedMv` (`r * 10 + 500`) to pause execution.",
+        ],
       },
       {
         featureTag: "Debug Evaluate",
-        title: "Evaluate Variables at Different Program Counters",
-        instruction:
-          "At each of the 3 `debugger;` pauses, evaluate the expressions below in the DevTools Console.",
-        expectedObservation:
-          "DevTools selects the exact `SubRangeBinding` matching the current paused generated position (`line:column`) when rewriting your Console expression.",
+        title: "Evaluate Variables Across Different Program Counters",
+        tryPrompt:
+          "Run the expressions below in the Console at Steps 1, 2, and 3.",
+        checkPoints: [
+          "**PC-Sensitive Rewriting:** DevTools picks the exact `SubRangeBinding` interval matching the current paused `line:column` in `bundle.js`.",
+        ],
       },
     ],
     evalExpressions: [
