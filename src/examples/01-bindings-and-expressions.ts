@@ -280,11 +280,6 @@ export function createExample01(): ExampleDefinition {
       orig: orig.at("subtotal += lineTotal;"),
     },
     {
-      gen: gen.at("i.unitPrice * i.quantity;"),
-      orig: orig.at("const lineTotal = item.unitPrice * item.quantity;"),
-      name: "lineTotal",
-    },
-    {
       gen: gen.at("const d ="),
       orig: orig.at("const discountedSubtotal ="),
       name: "discountedSubtotal",
