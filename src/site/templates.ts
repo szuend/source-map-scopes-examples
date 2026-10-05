@@ -47,6 +47,8 @@ function renderFeatureTagClass(tag: DebugStep["featureTag"]): string {
       return "tag-auto";
     case "Conditional Breakpoints":
       return "tag-bp";
+    case "Logical Stepping":
+      return "tag-stack";
   }
 }
 

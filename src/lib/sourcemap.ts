@@ -28,7 +28,8 @@ export interface DebugStep {
     | "Inline Hints & Popover"
     | "Debug Evaluate"
     | "Autocomplete"
-    | "Conditional Breakpoints";
+    | "Conditional Breakpoints"
+    | "Logical Stepping";
 }
 
 export interface EvalExpression {

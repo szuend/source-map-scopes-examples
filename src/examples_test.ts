@@ -9,7 +9,7 @@ function assert(condition: unknown, message: string): asserts condition {
 
 Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();
-  assert(examples.length === 4, "Expected 4 examples");
+  assert(examples.length === 5, "Expected 5 examples");
 
   for (const ex of examples) {
     const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex);
@@ -114,6 +114,45 @@ Deno.test("Example 04 marks compiler trampoline ranges with isHidden: true and k
   );
 });
 
+Deno.test("Example 05 encodes pure compiler helpers, an outlined block function, and an inlined helper range", () => {
+  const ex05 = getAllExamples().find((e) => e.id === "05-logical-stepping")!;
+  const { decodedScopeInfo } = buildExampleSourceMap(ex05);
+
+  const rootChildren = decodedScopeInfo.ranges[0].children;
+  // 0: __checkPositive (pure helper)
+  // 1: __openClearance (pure helper)
+  // 2: _outlinedCustomsBlock (outlined function: isStackFrame && isHidden && originalScope)
+  // 3: dispatchPackage (with inlined calculateCustomsDuty child)
+  // 4: runSteppingPipeline
+  // 5: window.runExample05
+  const checkPosRange = rootChildren[0];
+  assert(
+    checkPosRange.isStackFrame === true && checkPosRange.originalScope === undefined,
+    "Expected __checkPositive to be a pure helper range without an OriginalScope",
+  );
+
+  const outlinedRange = rootChildren[2];
+  assert(
+    outlinedRange.isStackFrame === true &&
+      outlinedRange.isHidden === true &&
+      outlinedRange.originalScope?.name === "dispatchPackage",
+    "Expected _outlinedCustomsBlock to be an outlined function range (isStackFrame: true, isHidden: true, originalScope: dispatchPackage)",
+  );
+  assert(
+    outlinedRange.children[0]?.originalScope?.kind === "Block",
+    "Expected _outlinedCustomsBlock body child range to reference the inner Block scope",
+  );
+
+  const dispatchRange = rootChildren[3];
+  const inlinedDutyRange = dispatchRange.children[0];
+  assert(
+    inlinedDutyRange.isStackFrame === false &&
+      inlinedDutyRange.callSite !== undefined &&
+      inlinedDutyRange.originalScope?.name === "calculateCustomsDuty",
+    "Expected calculateCustomsDuty to be an inlined range with a callSite inside dispatchPackage",
+  );
+});
+
 Deno.test("All generated bundle.js functions execute and return expected outputs", () => {
   const fakeWindow: Record<string, () => unknown> = {};
 
@@ -158,4 +197,13 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
   assert(res04.endpoint === "/api/v2/inference", "Ex04 endpoint");
   assert(res04.remainingTokens === 30, "Ex04 remainingTokens");
   assert(res04.burstUtilization === 40, "Ex04 burstUtilization");
+
+  const res05 = fakeWindow.runExample05() as {
+    shipment: { trackingId: string; dutyAmount: number; totalCost: number };
+    status: string;
+  };
+  assert(res05.shipment.trackingId === "SHP-9042", "Ex05 trackingId");
+  assert(res05.shipment.dutyAmount === 54, "Ex05 dutyAmount");
+  assert(res05.shipment.totalCost === 519, "Ex05 totalCost");
+  assert(res05.status === "Dispatched SHP-9042: $519", "Ex05 status");
 });
