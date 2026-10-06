@@ -367,9 +367,9 @@ export function renderExampleHtml(
         </section>
 
         <section class="panel-card">
-          <h2>Console <code>Debug Evaluate</code> Expressions to Try While Paused</h2>
+          <h2>Try in the Console While Paused</h2>
           <p style="margin-top: 0; font-size: 0.88rem; color: var(--text-secondary);">
-            While execution is paused at a <code>debugger;</code> statement in DevTools, open the Console drawer (<code>Esc</code>) and paste these expressions using the authored TypeScript identifiers:
+            While paused, select a frame and evaluate these in the Console (<code>Esc</code> opens the drawer) using the authored names:
           </p>
           <div class="eval-list">
             ${evalsHtml}
