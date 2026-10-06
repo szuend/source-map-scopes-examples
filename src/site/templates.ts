@@ -193,12 +193,11 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
 
   <main class="container">
     <section class="hero">
-      <span class="hero-eyebrow">TC39 / ECMA-426 Source Map Scopes Proposal &bull; Chrome DevTools</span>
-      <h1>Debug Heavily Optimized &amp; Inlined JavaScript as Authored TypeScript</h1>
+      <span class="hero-eyebrow">ECMA-426 Source Map Scopes &bull; Chrome DevTools</span>
+      <h1>Debug Optimized JavaScript as Authored TypeScript</h1>
       <p class="hero-lead">
-        This workbench contains self-contained, static debugging targets built with
-        <a href="https://jsr.io/@chrome-devtools/source-map-scopes-codec" target="_blank" rel="noopener"><code>@chrome-devtools/source-map-scopes-codec</code></a>.
-        Each example pairs authored TypeScript with minified/inlined JavaScript and an encoded <code>scopes</code> source map to exercise Chrome DevTools' scope-aware debugger.
+        Each example ships minified JavaScript with a hand-crafted <code>scopes</code> source map.
+        Pick an example, follow the steps with DevTools open, and use <strong>&#128027; File a bug</strong> for anything that looks off.
       </p>
       <div class="prereq-banner">
         <div class="prereq-item">
@@ -206,12 +205,8 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
           <span>Stable Chrome can't parse the current <code>scopes</code> format yet. In Chrome Canary, enable <code>chrome://flags/#devtools-source-map-scopes-in-sources-panel</code> and relaunch.</span>
         </div>
         <div class="prereq-item">
-          <strong>2. Open Any Example Below</strong>
-          <span>Click any example card, open Chrome DevTools (<code>F12</code> or <code>Cmd+Opt+I</code>), and click <strong>Run &amp; Pause in Debugger</strong> to hit the prepared <code>debugger;</code> breakpoints.</span>
-        </div>
-        <div class="prereq-item">
-          <strong>3. Inspect, Autocomplete &amp; Evaluate</strong>
-          <span>Follow the on-page walkthroughs to test Call Stack inlining, Scope sidebar reconstruction, editor inline hints, Console autocomplete, conditional breakpoints, and <code>debug evaluate</code>.</span>
+          <strong>2. Open an Example</strong>
+          <span>Open DevTools, click the example's run button, and work through the steps. Each step lists what DevTools should show.</span>
         </div>
       </div>
     </section>
