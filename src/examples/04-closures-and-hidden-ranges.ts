@@ -6,8 +6,6 @@ const originalSource = `// Authored TypeScript: closures-hidden.ts
 const DEFAULT_REGION = "us-central1";
 
 export class RateLimiter {
-  static readonly VERSION = "3.1.0";
-
   createEndpointHandler(
     endpointName: string,
     maxBurst: number,
@@ -22,7 +20,7 @@ export class RateLimiter {
 
       if (allowed) {
         const burstUtilization = Number(((usedTokens / maxBurst) * 100).toFixed(1));
-        debugger; // Pause: Inspect Block, Local, Closure, Class & Hidden Trampoline!
+        debugger; // Pause: Inspect Block, Local & Closure scopes and the hidden trampoline frames!
         return {
           region: DEFAULT_REGION,
           endpoint: endpointName,
@@ -79,7 +77,7 @@ window.runExample04 = function() {
 
 const builderCodeSnippet = `const builder = new SafeScopeInfoBuilder();
 
-// 1. Original Scopes: Module -> Class (RateLimiter) -> Closure (createEndpointHandler)
+// 1. Original Scopes: Module -> Function (createEndpointHandler)
 //    -> Function (handleRequest) -> Block (if allowed)
 builder
   .startSource()
@@ -87,12 +85,6 @@ builder
     kind: "Module",
     key: "module",
     variables: ["DEFAULT_REGION", "RateLimiter", "executeRateLimitCheck"],
-  })
-  .startScope(classStart.line, classStart.column, {
-    name: "RateLimiter",
-    kind: "Class",
-    key: "RateLimiter",
-    variables: ["VERSION"],
   })
   .startScope(factoryStart.line, factoryStart.column, {
     name: "createEndpointHandler",
@@ -116,7 +108,6 @@ builder
   .endScope(ifBlockEnd.line, ifBlockEnd.column)
   .endScope(handlerEnd.line, handlerEnd.column)
   .endScope(factoryEnd.line, factoryEnd.column)
-  .endScope(classEnd.line, classEnd.column)
   .startScope(execStart.line, execStart.column, {
     name: "executeRateLimitCheck",
     kind: "Function",
@@ -186,8 +177,6 @@ export function createExample04(): ExampleDefinition {
   const gen = new TextLocator(generatedCode);
 
   const origModuleEnd = orig.end();
-  const classStart = orig.at("export class RateLimiter {");
-  const classEnd = orig.after("    };\n  }\n}");
 
   const factoryStart = orig.at("(\n    endpointName: string,");
   const factoryEnd = orig.after("      };\n    };\n  }");
@@ -236,12 +225,6 @@ export function createExample04(): ExampleDefinition {
       key: "module",
       variables: ["DEFAULT_REGION", "RateLimiter", "executeRateLimitCheck"],
     })
-    .startScope(classStart.line, classStart.column, {
-      name: "RateLimiter",
-      kind: "Class",
-      key: "RateLimiter",
-      variables: ["VERSION"],
-    })
     .startScope(factoryStart.line, factoryStart.column, {
       name: "createEndpointHandler",
       kind: "Function",
@@ -264,7 +247,6 @@ export function createExample04(): ExampleDefinition {
     .endScope(ifBlockEnd.line, ifBlockEnd.column)
     .endScope(handlerEnd.line, handlerEnd.column)
     .endScope(factoryEnd.line, factoryEnd.column)
-    .endScope(classEnd.line, classEnd.column)
     .startScope(execStart.line, execStart.column, {
       name: "executeRateLimitCheck",
       kind: "Function",
@@ -375,12 +357,12 @@ export function createExample04(): ExampleDefinition {
   return {
     id: "04-closures-and-hidden-ranges",
     number: "04",
-    title: "Closures, Class Scopes & Hidden Compiler Frames",
+    title: "Closures & Hidden Compiler Frames",
     shortTitle: "Closures & Hidden Frames",
     subtitle:
       "Unpack tuple-compressed closure state (_c[0..3]) across nested scopes while hiding internal compiler trampolines (isHidden: true).",
     proposalFeatures: [
-      "Nested Scope Chain (Module -> Class -> Closure Function -> Inner Function -> Block)",
+      "Nested Scope Chain (Module -> Closure Function -> Inner Function -> Block)",
       "Hidden Stack Frame Ranges (isStackFrame: true, isHidden: true)",
       "Tuple-Packed Closure Capture Bindings (_c[0] -> endpointName, _c[3] -> usedTokens)",
       "Synthesized Boolean Guard Bindings (rem >= 0 -> allowed)",

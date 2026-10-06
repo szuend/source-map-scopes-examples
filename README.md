@@ -11,7 +11,7 @@ Interactive Chrome DevTools debugging showcase for the [TC39 / ECMA-426 Source M
 3. **`03-function-inlining` (`inlining.ts`)**:
    - Exercises 3-level nested function inlining (`processCustomerOrder -> calculateCartTotal -> computeTierDiscount -> clampPercentage`) with `callSite` positions and `isStackFrame: false`, expanding a single physical JS frame into 4 navigable call frames in Chrome DevTools.
 4. **`04-closures-and-hidden-ranges` (`closures-hidden.ts`)**:
-   - Exercises `Class` and `Closure` scopes where captured variables are packed into a heap tuple (`_c[0..3]`) and invoked via an internal compiler wrapper marked with `isHidden: true`.
+   - Exercises nested `Closure` scopes where captured variables are packed into a heap tuple (`_c[0..3]`) and invoked via an internal compiler wrapper marked with `isHidden: true`.
 5. **`05-logical-stepping` (`stepping.ts`)**:
    - Exercises scope-aware **Logical Stepping** (`Step Over`, `Step Into`, `Step Out`) across a multi-statement inlined helper (`calculateCustomsDuty`), an outlined transpiled block (`_outlinedCustomsBlock` with `isStackFrame: true, isHidden: true` + `OriginalScope`), and pure compiler helpers (`__checkPositive`, `__openClearance` with `isStackFrame: true` and no `OriginalScope`).
 

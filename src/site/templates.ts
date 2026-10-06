@@ -224,7 +224,7 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
       <div class="capability-card">
         <span class="capability-tag tag-scope">Scope Sidebar View</span>
         <h3>Full Scope Reconstruction</h3>
-        <p>Rebuilds <code>Block</code>, <code>Function</code>, <code>Closure</code>, <code>Class</code>, and <code>Module</code> scopes purely from source map <code>OriginalScope</code> and binding metadata.</p>
+        <p>Rebuilds <code>Block</code>, <code>Function</code>, <code>Closure</code>, and <code>Module</code> scopes purely from source map <code>OriginalScope</code> and binding metadata.</p>
       </div>
       <div class="capability-card">
         <span class="capability-tag tag-hints">Inline Hints &amp; Popover</span>
