@@ -216,39 +216,6 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
       </div>
     </section>
 
-    <section class="capabilities-grid" aria-label="Chrome DevTools Scope Features">
-      <div class="capability-card">
-        <span class="capability-tag tag-stack">Call Stack &amp; Inlining</span>
-        <h3>Virtual Frame Expansion</h3>
-        <p>Expands inlined call chains (<code>callSite</code> + <code>isStackFrame: false</code>) into navigable frames and hides internal compiler wrappers (<code>isHidden: true</code>).</p>
-      </div>
-      <div class="capability-card">
-        <span class="capability-tag tag-scope">Scope Sidebar View</span>
-        <h3>Full Scope Reconstruction</h3>
-        <p>Rebuilds <code>Block</code>, <code>Function</code>, <code>Closure</code>, and <code>Module</code> scopes purely from source map <code>OriginalScope</code> and binding metadata.</p>
-      </div>
-      <div class="capability-card">
-        <span class="capability-tag tag-hints">Inline Hints &amp; Popover</span>
-        <h3>Editor Live Values</h3>
-        <p>Renders end-of-line variable hints and rich hover inspection popovers in the authored TypeScript editor using decoded scope bindings.</p>
-      </div>
-      <div class="capability-card">
-        <span class="capability-tag tag-eval">Debug Evaluate</span>
-        <h3>AST-Based Console Evaluation</h3>
-        <p>Allows evaluating expressions in the Console &amp; Watch pane using original TypeScript names by substituting active binding expressions into the AST.</p>
-      </div>
-      <div class="capability-card">
-        <span class="capability-tag tag-auto">Autocomplete</span>
-        <h3>Original Variable Suggestions</h3>
-        <p>Populates Chrome DevTools' autocomplete menu with original variable and constant names from the active <code>OriginalScope</code> chain.</p>
-      </div>
-      <div class="capability-card">
-        <span class="capability-tag tag-bp">Conditional Breakpoints</span>
-        <h3>Authored Breakpoint Conditions</h3>
-        <p>Evaluates conditional breakpoints and logpoints using original TypeScript variable names via <code>debug evaluate</code> under the hood.</p>
-      </div>
-    </section>
-
     <div class="section-heading">
       <h2>Interactive Debugging Examples</h2>
     </div>

@@ -231,33 +231,7 @@ p code, li code, td code {
   color: var(--text-secondary);
 }
 
-/* Feature Capability Strip */
-.capabilities-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  margin-bottom: 2.5rem;
-}
-
-@media (max-width: 1024px) {
-  .capabilities-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .capabilities-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.capability-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 1.15rem 1.25rem;
-}
-
+/* Feature Tags */
 .capability-tag {
   font-family: var(--font-mono);
   font-size: 0.74rem;
@@ -296,17 +270,6 @@ p code, li code, td code {
 .tag-bp {
   background: hsla(14, 88%, 60%, 0.14);
   color: hsl(14, 92%, 68%);
-}
-
-.capability-card h3 {
-  margin: 0 0 0.35rem;
-  font-size: 0.98rem;
-}
-
-.capability-card p {
-  margin: 0;
-  font-size: 0.86rem;
-  color: var(--text-secondary);
 }
 
 /* Examples Cards Grid on Index */
