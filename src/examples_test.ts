@@ -2,6 +2,7 @@ import type {
   GeneratedRange,
   Position,
 } from "@chrome-devtools/source-map-scopes-codec";
+import { decode } from "@jridgewell/sourcemap-codec";
 import { getAllExamples } from "./examples/mod.ts";
 import { TextLocator } from "./lib/locator.ts";
 import { buildExampleSourceMap } from "./lib/sourcemap.ts";
@@ -69,7 +70,7 @@ Deno.test("No binding references a generated let/const while it is still in its 
 
 Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();
-  assert(examples.length === 6, "Expected 6 examples");
+  assert(examples.length === 7, "Expected 7 examples");
 
   for (const ex of examples) {
     const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex);
@@ -275,6 +276,40 @@ Deno.test("Example 06 encodes the raw frames of the thrown error as outlined, hi
   );
 });
 
+Deno.test("Example 07 inlines the same original function at two distinct call sites", () => {
+  const ex07 = getAllExamples().find((e) => e.id === "07-multiple-call-sites")!;
+  const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex07);
+
+  const compareRange = decodedScopeInfo.ranges[0].children[0];
+  const [copyA, copyB] = compareRange.children;
+  assert(compareRange.children.length === 2, "Expected two inlined copies");
+  assert(
+    copyA.originalScope?.name === "toCents" &&
+      copyA.originalScope === copyB.originalScope,
+    "Both copies reference the same 'toCents' OriginalScope",
+  );
+  assert(
+    !copyA.isStackFrame && !copyB.isStackFrame && copyA.callSite &&
+      copyB.callSite && copyA.callSite.line !== copyB.callSite.line,
+    "Each copy is inlined with its own callSite",
+  );
+  assert(
+    copyA.values[0] === "a" && copyB.values[0] === "b",
+    "Each copy binds 'amount' to its own generated variable",
+  );
+
+  // `const cents = ...` must be mapped from both generated copies.
+  const centsLine = new TextLocator(ex07.originalSource).at("const cents =").line;
+  const mappedGenLines = decode(sourceMap.mappings)
+    .flatMap((segments, genLine) =>
+      segments.some((s) => s[2] === centsLine) ? [genLine] : []
+    );
+  assert(
+    mappedGenLines.length === 2,
+    `Expected 'const cents' to be mapped from 2 generated lines, got ${mappedGenLines}`,
+  );
+});
+
 Deno.test("All generated bundle.js functions execute and return expected outputs", () => {
   const fakeWindow: Record<string, () => unknown> = {};
 
@@ -328,6 +363,15 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
   assert(res05.shipment.dutyAmount === 54, "Ex05 dutyAmount");
   assert(res05.shipment.totalCost === 519, "Ex05 totalCost");
   assert(res05.status === "Dispatched SHP-9042: $519", "Ex05 status");
+
+  const res07 = fakeWindow.runExample07() as {
+    centsA: number;
+    centsB: number;
+    cheaper: string;
+  };
+  assert(res07.centsA === 2500, "Ex07 centsA");
+  assert(res07.centsB === 2450, "Ex07 centsB");
+  assert(res07.cheaper === "B", "Ex07 cheaper");
 
   // Ex06: only the caught path; runExample06 throws from a timer by design.
   const originalConsoleError = console.error;
