@@ -14,6 +14,8 @@ Interactive Chrome DevTools debugging showcase for the [TC39 / ECMA-426 Source M
    - Exercises nested `Closure` scopes where captured variables are packed into a heap tuple (`_c[0..3]`) and invoked via an internal compiler wrapper marked with `isHidden: true`.
 5. **`05-logical-stepping` (`stepping.ts`)**:
    - Exercises scope-aware **Logical Stepping** (`Step Over`, `Step Into`, `Step Out`) across a multi-statement inlined helper (`calculateCustomsDuty`), an outlined transpiled block (`_outlinedCustomsBlock` with `isStackFrame: true, isHidden: true` + `OriginalScope`), and pure compiler helpers (`__checkPositive`, `__openClearance` with `isStackFrame: true` and no `OriginalScope`).
+6. **`06-error-stack-traces` (`errors.ts`)**:
+   - Exercises symbolized `Error.stack` traces (caught + `console.error`, uncaught from a timer, pause on exceptions) for an error thrown from inlined code inside an outlined block, called through a runtime helper without `OriginalScope`, from a caller that has the outlined block's owner inlined.
 
 ## Local Development (Deno)
 

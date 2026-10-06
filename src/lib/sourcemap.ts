@@ -29,7 +29,8 @@ export interface DebugStep {
     | "Debug Evaluate"
     | "Autocomplete"
     | "Conditional Breakpoints"
-    | "Logical Stepping";
+    | "Logical Stepping"
+    | "Error Stack Traces";
 }
 
 export interface EvalExpression {
@@ -56,7 +57,11 @@ export interface ExampleDefinition {
   debugSteps: DebugStep[];
   evalExpressions: EvalExpression[];
   runFunctionName: string;
+  /** Label of the button that calls `runFunctionName`. */
+  runButtonLabel?: string;
   logStackFunctionName?: string;
+  /** Label of the button that calls `logStackFunctionName`. */
+  logStackButtonLabel?: string;
   /** Short, open-ended ideas for exploring beyond the walkthrough. */
   otherThingsToTry?: string[];
 }

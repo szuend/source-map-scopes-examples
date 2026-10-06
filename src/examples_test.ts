@@ -69,7 +69,7 @@ Deno.test("No binding references a generated let/const while it is still in its 
 
 Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();
-  assert(examples.length === 5, "Expected 5 examples");
+  assert(examples.length === 6, "Expected 6 examples");
 
   for (const ex of examples) {
     const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex);
@@ -213,6 +213,68 @@ Deno.test("Example 05 encodes pure compiler helpers, an outlined block function,
   );
 });
 
+Deno.test("Example 06 encodes the raw frames of the thrown error as outlined, hidden, and inlined ranges", () => {
+  const ex06 = getAllExamples().find((e) => e.id === "06-error-stack-traces")!;
+  const { decodedScopeInfo } = buildExampleSourceMap(ex06);
+  const gen = new TextLocator(ex06.generatedCode);
+
+  // Outer-to-inner chain of generated ranges containing `pos`.
+  const rangeChain = (pos: Position) => {
+    const chain: GeneratedRange[] = [];
+    let ranges = decodedScopeInfo.ranges;
+    for (;;) {
+      const r = ranges.find((r) =>
+        comparePositions(r.start, pos) <= 0 && comparePositions(pos, r.end) < 0
+      );
+      if (!r) return chain;
+      chain.push(r);
+      ranges = r.children;
+    }
+  };
+
+  // Raw frame 0: the `throw` inside _outlinedUsingBlock.
+  const [, outlined, block, reserveLine, assertFn] = rangeChain(
+    gen.at('new RangeError("Invalid'),
+  );
+  assert(
+    outlined.isStackFrame && outlined.isHidden &&
+      outlined.originalScope?.name === "reserveOrder",
+    "Throw site must be in an outlined range with definition 'reserveOrder'",
+  );
+  assert(block.originalScope?.kind === "Block", "Outlined body maps to the using block");
+  assert(
+    !reserveLine.isStackFrame && reserveLine.callSite &&
+      reserveLine.originalScope?.name === "reserveLine",
+    "reserveLine is inlined into the outlined block",
+  );
+  assert(
+    !assertFn.isStackFrame && assertFn.callSite &&
+      assertFn.originalScope?.name === "assertValidQuantity",
+    "assertValidQuantity is inlined into reserveLine",
+  );
+
+  // Raw frame 1: `body(...)` inside the __using helper.
+  const usingChain = rangeChain(gen.at("body(res, ...args)"));
+  const usingRange = usingChain.at(-1)!;
+  assert(
+    usingRange.isStackFrame && usingRange.originalScope === undefined,
+    "__using is a helper range without definition",
+  );
+
+  // Raw frame 2: the `__using(...)` call in submitOrder.
+  const [, submit, reserveOrder] = rangeChain(gen.at("__using(__acquireLock"));
+  assert(
+    submit.isStackFrame && !submit.isHidden &&
+      submit.originalScope?.name === "submitOrder",
+    "Caller is the visible submitOrder range",
+  );
+  assert(
+    !reserveOrder.isStackFrame && reserveOrder.callSite &&
+      reserveOrder.originalScope === outlined.originalScope,
+    "reserveOrder (owner of the outlined block) is inlined into submitOrder",
+  );
+});
+
 Deno.test("All generated bundle.js functions execute and return expected outputs", () => {
   const fakeWindow: Record<string, () => unknown> = {};
 
@@ -266,4 +328,23 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
   assert(res05.shipment.dutyAmount === 54, "Ex05 dutyAmount");
   assert(res05.shipment.totalCost === 519, "Ex05 totalCost");
   assert(res05.status === "Dispatched SHP-9042: $519", "Ex05 status");
+
+  // Ex06: only the caught path; runExample06 throws from a timer by design.
+  const originalConsoleError = console.error;
+  const logged: unknown[] = [];
+  console.error = (e: unknown) => logged.push(e);
+  try {
+    const stack06 = fakeWindow.logStackExample06() as string;
+    assert(
+      logged.length === 1 && logged[0] instanceof RangeError &&
+        logged[0].message === "Invalid quantity 0 for SKU-B",
+      "Ex06 logs the RangeError",
+    );
+    assert(
+      stack06.includes("_outlinedUsingBlock") && stack06.includes("__using"),
+      "Ex06 raw stack contains the generated frames",
+    );
+  } finally {
+    console.error = originalConsoleError;
+  }
 });

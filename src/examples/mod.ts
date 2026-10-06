@@ -4,6 +4,7 @@ import { createExample02 } from "./02-sub-range-bindings.ts";
 import { createExample03 } from "./03-function-inlining.ts";
 import { createExample04 } from "./04-closures-and-hidden-ranges.ts";
 import { createExample05 } from "./05-logical-stepping.ts";
+import { createExample06 } from "./06-error-stack-traces.ts";
 
 export function getAllExamples(): ExampleDefinition[] {
   return [
@@ -12,5 +13,6 @@ export function getAllExamples(): ExampleDefinition[] {
     createExample03(),
     createExample04(),
     createExample05(),
+    createExample06(),
   ];
 }

@@ -49,6 +49,8 @@ function renderFeatureTagClass(tag: DebugStep["featureTag"]): string {
       return "tag-bp";
     case "Logical Stepping":
       return "tag-stack";
+    case "Error Stack Traces":
+      return "tag-stack";
   }
 }
 
@@ -272,6 +274,7 @@ export function renderExampleHtml(
   allExamples: BuiltExample[],
 ): string {
   const { example, sourceMap, decodedScopeInfo } = built;
+  const runButtonLabel = example.runButtonLabel ?? "Run & Pause in Debugger";
 
   const navPills = allExamples
     .map(
@@ -373,15 +376,15 @@ export function renderExampleHtml(
         </div>
         <div class="action-buttons">
           <button type="button" class="btn-primary" id="btn-run-debugger">
-            <span>&#9654; Run &amp; Pause in Debugger</span>
+            <span>&#9654; ${escapeHtml(runButtonLabel)}</span>
           </button>
           ${
             example.logStackFunctionName
-              ? `<button type="button" class="btn-secondary" id="btn-log-stack">Log Inlined Error Stack</button>`
+              ? `<button type="button" class="btn-secondary" id="btn-log-stack">${escapeHtml(example.logStackButtonLabel ?? "Log Inlined Error Stack")}</button>`
               : ""
           }
         </div>
-        <div class="output-readout" id="live-output-readout">Ready. Click "Run &amp; Pause in Debugger" with DevTools open to hit debugger statements in ${escapeHtml(example.originalFileName)}.</div>
+        <div class="output-readout" id="live-output-readout">Ready. Click "${escapeHtml(runButtonLabel)}" with DevTools open.</div>
       </div>
     </section>
 
