@@ -144,6 +144,29 @@ p code, li code, td code {
   border-color: hsla(208, 88%, 62%, 0.35);
 }
 
+.nav-pill.bug-link {
+  color: var(--accent-amber);
+  background: var(--accent-amber-bg);
+  border-color: hsla(37, 92%, 58%, 0.35);
+}
+
+.other-things {
+  margin-top: 0.85rem;
+  font-size: 0.87rem;
+}
+
+.other-things summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.other-things .check-list {
+  margin-top: 0.5rem;
+  border-top: none;
+  padding-left: 1.5rem;
+}
+
 /* Containers */
 .container {
   max-width: 1400px;

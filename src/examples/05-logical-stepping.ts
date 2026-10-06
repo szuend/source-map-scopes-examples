@@ -617,6 +617,12 @@ export function createExample05(): ExampleDefinition {
           "Combines `subtotalWithDuty` (`sub` in `customsBlock`) with `handlingFee` (`fee` in `dispatchPackage`).",
       },
     ],
+    otherThingsToTry: [
+      "Set breakpoints inside the outlined block and inside the inlined `calculateCustomsDuty`, then re-run.",
+      "Step Into (`F11`) the `dispatchPackage(...)` call in `runSteppingPipeline`.",
+      "While paused inside the outlined block, use **Restart frame** on `dispatchPackage`.",
+      "Select a non-top frame in the Call Stack and press `F10`.",
+    ],
     runFunctionName: "runExample05",
   };
 }

@@ -478,6 +478,11 @@ export function createExample03(): ExampleDefinition {
           "In `calculateCartTotal`, `subtotal` (`240`) and constant-inlined parameter `couponFixed` (`15`) evaluate to `225`.",
       },
     ],
+    otherThingsToTry: [
+      "Click **Log Inlined Error Stack** and check the Console stack trace lists all 4 authored functions.",
+      "Select an inlined frame (e.g. `computeTierDiscount`) and use **Restart frame**, or step with `F10`/`Shift+F11`.",
+      "Right-click the Call Stack › **Copy stack trace**.",
+    ],
     runFunctionName: "runExample03",
     logStackFunctionName: "logStackExample03",
   };

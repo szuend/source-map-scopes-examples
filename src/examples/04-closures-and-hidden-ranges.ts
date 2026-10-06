@@ -488,6 +488,11 @@ export function createExample04(): ExampleDefinition {
           "Substitutes synthesized boolean `rem >= 0` for `allowed` and tuple slot `_c[2]` for `windowSeconds`.",
       },
     ],
+    otherThingsToTry: [
+      "Step Out (`Shift+F11`) of `handleRequest`: you should never land in `__withCompilerTrampoline`.",
+      "Add Watch expressions using closure variables (`usedTokens`, `maxBurst`), then select another frame.",
+      "Hover `DEFAULT_REGION`, `endpointName` and `usedTokens` in the editor with different frames selected.",
+    ],
     runFunctionName: "runExample04",
   };
 }

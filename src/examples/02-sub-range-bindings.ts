@@ -359,6 +359,11 @@ export function createExample02(): ExampleDefinition {
           "Resolves to `r` only after execution reaches `step3Pos`.",
       },
     ],
+    otherThingsToTry: [
+      "Step with `F10` instead of resuming, and watch when each variable switches between a value and `<unavailable>`.",
+      "Add `calibratedMv`, `temperatureCelsius` and `statusBadge` as Watch expressions before running.",
+      "Set a breakpoint on each `const` line (instead of using `debugger;`) and check the Scope view.",
+    ],
     runFunctionName: "runExample02",
   };
 }

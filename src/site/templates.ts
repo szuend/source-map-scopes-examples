@@ -52,6 +52,12 @@ function renderFeatureTagClass(tag: DebugStep["featureTag"]): string {
   }
 }
 
+const FILE_BUG_URL =
+  "https://issues.chromium.org/issues/new?component=1456920&template=2037817";
+
+const fileBugLink =
+  `<a href="${FILE_BUG_URL}" class="nav-pill bug-link" target="_blank" rel="noopener">&#128027; File a bug</a>`;
+
 function renderOriginalScopeTree(scope: OriginalScope | null): string {
   if (!scope) return `<div class="scope-tree-node">null</div>`;
   const vars = scope.variables.length
@@ -186,6 +192,7 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
       <nav class="header-nav" aria-label="Examples navigation">
         <a href="./index.html" class="nav-pill active">Overview</a>
         ${navPills}
+        ${fileBugLink}
       </nav>
     </div>
   </header>
@@ -344,6 +351,7 @@ export function renderExampleHtml(
       <nav class="header-nav" aria-label="Examples navigation">
         <a href="../../index.html" class="nav-pill">Overview</a>
         ${navPills}
+        ${fileBugLink}
       </nav>
     </div>
   </header>
@@ -389,6 +397,16 @@ export function renderExampleHtml(
           <div class="steps-list">
             ${stepsHtml}
           </div>
+          ${
+            example.otherThingsToTry?.length
+              ? `<details class="other-things">
+            <summary>Other things to try</summary>
+            <ul class="check-list">
+              ${example.otherThingsToTry.map((t) => `<li>${formatInlineBackticks(t)}</li>`).join("")}
+            </ul>
+          </details>`
+              : ""
+          }
         </section>
 
         <section class="panel-card">

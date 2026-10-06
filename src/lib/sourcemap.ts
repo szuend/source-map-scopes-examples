@@ -57,6 +57,8 @@ export interface ExampleDefinition {
   evalExpressions: EvalExpression[];
   runFunctionName: string;
   logStackFunctionName?: string;
+  /** Short, open-ended ideas for exploring beyond the walkthrough. */
+  otherThingsToTry?: string[];
 }
 
 export interface BuiltExample {

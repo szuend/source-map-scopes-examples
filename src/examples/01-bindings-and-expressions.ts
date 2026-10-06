@@ -423,6 +423,12 @@ export function createExample01(): ExampleDefinition {
           "Verifies boolean and numeric expressions using synthesized `isVip`, `discountRate`, and module-scoped constant `TAX_RATE`.",
       },
     ],
+    otherThingsToTry: [
+      "Add a logpoint in the `for` loop that prints `item.sku` and `lineTotal`.",
+      "Add Watch expressions with folded constants (`TAX_RATE`, `CURRENCY`) and step through the loop.",
+      "Hover variables that were optimized away and check what the popover shows.",
+      "Toggle the source map scopes experiment and compare the Scope view.",
+    ],
     runFunctionName: "runExample01",
   };
 }
