@@ -583,9 +583,9 @@ export function createExample06(): ExampleDefinition {
       },
       {
         expression: "orderId",
-        expectedResult: 'unavailable with reserveOrder selected; "ORD-17" with submitOrder selected',
+        expectedResult: 'ReferenceError with reserveOrder selected; "ORD-17" with submitOrder selected',
         explanation:
-          "The outlined block does not receive `orderId`, but the `submitOrder` frame still has it.",
+          "The outlined block does not receive `orderId` (it is `<unavailable>` in the Scope pane), so there is nothing to evaluate. The `submitOrder` frame still has it.",
       },
     ],
     runFunctionName: "runExample06",
