@@ -415,7 +415,7 @@ export function createExample03(): ExampleDefinition {
         tryPrompt:
           `Click **"Run & Pause in Debugger"** to pause at \`debugger;\` on line ${orig.lineNumber("debugger;")} of \`inlining.ts\` (\`clampPercentage\`).`,
         checkPoints: [
-          `**4 Virtual Frames from 1 Physical Frame:** Even though only \`processCustomerOrder\` exists in \`bundle.js\`, the Call Stack pane shows \`clampPercentage\` (line ${orig.lineNumber("debugger;")}) &rarr; \`computeTierDiscount\` (line ${orig.lineNumber("clampPercentage(rawPercent")}) &rarr; \`calculateCartTotal\` (line ${orig.lineNumber("computeTierDiscount(subtotal")}) &rarr; \`processCustomerOrder\` (line ${orig.lineNumber("calculateCartTotal(subtotal")}).`,
+          `**4 Virtual Frames from 1 Physical Frame:** Even though only \`processCustomerOrder\` exists in \`bundle.js\`, the Call Stack pane shows \`clampPercentage\` (line ${orig.lineNumber("debugger;")}) → \`computeTierDiscount\` (line ${orig.lineNumber("clampPercentage(rawPercent")}) → \`calculateCartTotal\` (line ${orig.lineNumber("computeTierDiscount(subtotal")}) → \`processCustomerOrder\` (line ${orig.lineNumber("calculateCartTotal(subtotal")}).`,
         ],
       },
       {
@@ -445,7 +445,7 @@ export function createExample03(): ExampleDefinition {
         tryPrompt:
           `Right-click line ${orig.lineNumber("return baseAmount")} (\`return baseAmount * (effectivePercent / 100);\` inside \`computeTierDiscount\`), set conditional breakpoint \`rawPercent > effectivePercent\`, resume (\`F8\`), and click **"Run & Pause in Debugger"** again.`,
         checkPoints: [
-          "**Inlined Condition Evaluation:** DevTools evaluates `(y * 4) > pct` (`32 > 25` &rarr; `true`) and pauses directly inside the inlined `computeTierDiscount` frame.",
+          "**Inlined Condition Evaluation:** DevTools evaluates `(y * 4) > pct` (`32 > 25` → `true`) and pauses directly inside the inlined `computeTierDiscount` frame.",
         ],
       },
       {

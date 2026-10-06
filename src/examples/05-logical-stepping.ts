@@ -568,7 +568,7 @@ export function createExample05(): ExampleDefinition {
           `**At the \`debugger;\`:** \`handlingFee\`, \`dutyAmount\` and \`totalCost\` show as \`<unavailable>\` (not initialized yet).`,
           `**1st \`F10\` (Line ${L("const handlingFee")} \`const handlingFee = 15;\`):** Stops on line ${L("const handlingFee")} (\`__checkPositive(15)\` in \`bundle.js\` is not entered).`,
           `**2nd \`F10\` (Line ${L("const dutyAmount")} \`const dutyAmount = calculateCustomsDuty(...)\`):** Stops at the call site before entering the inlined range.`,
-          `**3rd \`F10\` (Skips Inlined Body &rarr; Line ${L("let totalCost")} \`let totalCost = 0;\`):** DevTools passes the inlined callee range in \`skipList\`, skipping all 3 statements of \`calculateCustomsDuty\`!`,
+          `**3rd \`F10\` (Skips Inlined Body → Line ${L("let totalCost")} \`let totalCost = 0;\`):** DevTools passes the inlined callee range in \`skipList\`, skipping all 3 statements of \`calculateCustomsDuty\`!`,
         ],
       },
       {
