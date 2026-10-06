@@ -140,27 +140,19 @@ function renderGeneratedRangeTree(range: GeneratedRange): string {
 export function renderIndexHtml(builtExamples: BuiltExample[]): string {
   const cardsHtml = builtExamples
     .map(({ example }) => {
-      const chips = [
-        ...example.proposalFeatures.slice(0, 3),
-        ...example.devtoolsFeatures.slice(0, 2),
-      ]
-        .map((f) => `<span class="chip">${escapeHtml(f)}</span>`)
+      const tags = [...new Set(example.debugSteps.map((s) => s.featureTag))]
+        .map((tag) =>
+          `<span class="capability-tag ${renderFeatureTagClass(tag)}">${escapeHtml(tag)}</span>`
+        )
         .join("");
 
       return `<a href="./examples/${example.id}/index.html" class="example-card" id="card-${example.id}">
-        <div>
-          <div class="example-card-header">
-            <span class="example-num">EXAMPLE ${example.number}</span>
-            <span class="example-file-badge">${escapeHtml(example.originalFileName)} &rarr; bundle.js</span>
-          </div>
-          <h3>${escapeHtml(example.title)}</h3>
-          <p>${escapeHtml(example.subtitle)}</p>
-          <div class="chip-list">${chips}</div>
+        <div class="example-card-header">
+          <span class="example-num">EXAMPLE ${example.number}</span>
         </div>
-        <div class="example-card-footer">
-          <span>Open Interactive Debugger Workbench</span>
-          <span>&rarr;</span>
-        </div>
+        <h3>${escapeHtml(example.title)}</h3>
+        <p>${escapeHtml(example.subtitle)}</p>
+        <div class="chip-list">${tags}</div>
       </a>`;
     })
     .join("\n");

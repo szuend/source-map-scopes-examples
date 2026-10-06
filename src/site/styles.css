@@ -342,7 +342,6 @@ p code, li code, td code {
   padding: 1.5rem 1.65rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
 }
 
@@ -367,12 +366,6 @@ p code, li code, td code {
   background: var(--accent-blue-bg);
   padding: 0.2rem 0.55rem;
   border-radius: 4px;
-}
-
-.example-file-badge {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-muted);
 }
 
 .example-card h3 {
@@ -404,15 +397,13 @@ p code, li code, td code {
   border-radius: 4px;
 }
 
-.example-card-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-subtle);
-  font-weight: 600;
-  font-size: 0.88rem;
-  color: var(--accent-blue);
+.example-card .chip-list {
+  margin-top: auto;
+  margin-bottom: 0;
+}
+
+.example-card .capability-tag {
+  margin-bottom: 0;
 }
 
 /* Example Detail Page Layout */
