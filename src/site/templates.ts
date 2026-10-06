@@ -368,6 +368,7 @@ export function renderExampleHtml(
           </details>`
               : ""
           }
+          <p class="triage-hint">Not sure if it's a DevTools bug? Tab <strong>4. Decoded Scopes</strong> shows what the source map actually encodes.</p>
         </section>
 
         <section class="panel-card">

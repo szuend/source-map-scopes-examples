@@ -167,6 +167,12 @@ p code, li code, td code {
   padding-left: 1.5rem;
 }
 
+.triage-hint {
+  margin: 0.85rem 0 0;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
 /* Containers */
 .container {
   max-width: 1400px;
