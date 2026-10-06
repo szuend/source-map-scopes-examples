@@ -208,6 +208,10 @@ export function renderIndexHtml(builtExamples: BuiltExample[]): string {
           <strong>2. Open an Example</strong>
           <span>Open DevTools, click the example's run button, and work through the steps. Each step lists what DevTools should show.</span>
         </div>
+        <div class="prereq-item">
+          <strong>3. Undock DevTools</strong>
+          <span>Put DevTools in its own window (&#8942; &rsaquo; <em>Dock side</em>) so the steps and the code stay side by side.</span>
+        </div>
       </div>
     </section>
 
