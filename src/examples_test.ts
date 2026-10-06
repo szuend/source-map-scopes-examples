@@ -1,4 +1,9 @@
+import type {
+  GeneratedRange,
+  Position,
+} from "@chrome-devtools/source-map-scopes-codec";
 import { getAllExamples } from "./examples/mod.ts";
+import { TextLocator } from "./lib/locator.ts";
 import { buildExampleSourceMap } from "./lib/sourcemap.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -6,6 +11,61 @@ function assert(condition: unknown, message: string): asserts condition {
     throw new Error(`Assertion failed: ${message}`);
   }
 }
+
+function comparePositions(a: Position, b: Position): number {
+  return a.line - b.line || a.column - b.column;
+}
+
+Deno.test("No binding references a generated let/const while it is still in its TDZ", () => {
+  for (const ex of getAllExamples()) {
+    const gen = new TextLocator(ex.generatedCode);
+    const { decodedScopeInfo } = buildExampleSourceMap(ex);
+
+    // Every `const x`/`let x` (incl. `for (const x of ...)`) with the position
+    // where it becomes initialized (end of the declaration statement / loop head).
+    const decls: { name: string; start: Position; initialized: Position }[] = [];
+    for (const m of ex.generatedCode.matchAll(/\b(?:const|let)\s+([A-Za-z_$][\w$]*)/g)) {
+      const rest = ex.generatedCode.slice(m.index);
+      const endOffset = m.index + Math.min(
+        ...[rest.indexOf(";"), rest.indexOf("{")].filter((i) => i >= 0),
+      );
+      decls.push({
+        name: m[1],
+        start: gen.offsetToPosition(m.index),
+        initialized: gen.offsetToPosition(endOffset),
+      });
+    }
+
+    const identifiers = (expr: string) =>
+      [...expr.replace(/"[^"]*"/g, "").matchAll(/(?<![.\w$])[A-Za-z_$][\w$]*/g)]
+        .map((m) => m[0]);
+
+    const check = (range: GeneratedRange) => {
+      range.values.forEach((binding, i) => {
+        const varName = range.originalScope?.variables[i];
+        const parts = typeof binding === "string"
+          ? [{ value: binding, from: range.start }]
+          : binding ?? [];
+        for (const { value, from } of parts) {
+          if (!value) continue;
+          for (const id of identifiers(value)) {
+            for (const d of decls) {
+              const declaredInRange = d.name === id &&
+                comparePositions(d.start, range.start) >= 0 &&
+                comparePositions(d.start, range.end) < 0;
+              assert(
+                !declaredInRange || comparePositions(from, d.initialized) >= 0,
+                `Example ${ex.id}: '${varName}' is bound to '${value}' from ${from.line}:${from.column}, but '${id}' is only initialized at ${d.initialized.line}:${d.initialized.column}`,
+              );
+            }
+          }
+        }
+      });
+      range.children.forEach(check);
+    };
+    decodedScopeInfo.ranges.forEach(check);
+  }
+});
 
 Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();

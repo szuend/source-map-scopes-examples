@@ -1,4 +1,5 @@
 import { SafeScopeInfoBuilder } from "@chrome-devtools/source-map-scopes-codec";
+import { availableFrom } from "../lib/bindings.ts";
 import { TextLocator } from "../lib/locator.ts";
 import type { ExampleDefinition, MappingPoint } from "../lib/sourcemap.ts";
 
@@ -151,6 +152,8 @@ builder
 //    - __checkPositive & __openClearance: pure compiler helpers (isStackFrame: true, no OriginalScope)
 //    - _outlinedCustomsBlock: outlined block function (isStackFrame: true, isHidden: true, scopeKey: "dispatchPackage")
 //    - dispatchPackage: contains inlined calculateCustomsDuty range (isStackFrame: false, callSite)
+//    - availableFrom(start, from, end, value) = unavailable in [start, from), bound to value in [from, end).
+//      Used for generated let/const that are still in their TDZ before their declaration ran.
 builder
   .startRange(0, 0, {
     scopeKey: "module",
@@ -168,12 +171,22 @@ builder
     scopeKey: "dispatchPackage",
     isStackFrame: true,
     isHidden: true,
-    values: ["id", "val", "cat", "fee", "duty", "tot"],
+    values: [
+      "id", "val", "cat", "fee", "duty",
+      // totalCost is still 0 until the outlined 'const tot' is assigned
+      [
+        { from: outlinedStart, to: afterOutlinedTot, value: "0" },
+        { from: afterOutlinedTot, to: outlinedEnd, value: "tot" },
+      ],
+    ],
   })
   .startRange(outlinedBodyStart.line, outlinedBodyStart.column, {
     scopeKey: "customsBlock",
     isStackFrame: false,
-    values: ["cl", "sub"],
+    values: [
+      availableFrom(outlinedBodyStart, afterCl, outlinedBodyEnd, "cl"),
+      availableFrom(outlinedBodyStart, afterSub, outlinedBodyEnd, "sub"),
+    ],
   })
   .endRange(outlinedBodyEnd.line, outlinedBodyEnd.column)
   .endRange(outlinedEnd.line, outlinedEnd.column)
@@ -181,20 +194,33 @@ builder
   .startRange(genDispatchStart.line, genDispatchStart.column, {
     scopeKey: "dispatchPackage",
     isStackFrame: true,
-    values: ["id", "val", "cat", "fee", "duty", "tot"],
+    values: [
+      "id", "val", "cat",
+      availableFrom(genDispatchStart, afterFee, genDispatchEnd, "fee"),
+      availableFrom(genDispatchStart, afterDuty, genDispatchEnd, "duty"),
+      availableFrom(genDispatchStart, afterTot, genDispatchEnd, "tot"),
+    ],
   })
   .startRange(genInlinedStart.line, genInlinedStart.column, {
     scopeKey: "calculateCustomsDuty",
     isStackFrame: false,
     callSite: callSiteCalculateDuty,
-    values: ["_inlinedArg", "cat", "r", "raw", "duty"],
+    values: [
+      "_inlinedArg", "cat",
+      availableFrom(genInlinedStart, afterR, genInlinedEnd, "r"),
+      availableFrom(genInlinedStart, afterRaw, genInlinedEnd, "raw"),
+      null, // roundedDuty: 'duty' is only assigned by the very last statement of this range
+    ],
   })
   .endRange(genInlinedEnd.line, genInlinedEnd.column)
   .endRange(genDispatchEnd.line, genDispatchEnd.column)
   .startRange(genPipelineStart.line, genPipelineStart.column, {
     scopeKey: "runSteppingPipeline",
     isStackFrame: true,
-    values: ["s", "st"],
+    values: [
+      availableFrom(genPipelineStart, afterS, genPipelineEnd, "s"),
+      availableFrom(genPipelineStart, afterSt, genPipelineEnd, "st"),
+    ],
   })
   .endRange(genPipelineEnd.line, genPipelineEnd.column)
   .startRange(genRunStart.line, genRunStart.column, { isStackFrame: true })
@@ -249,6 +275,18 @@ export function createExample05(): ExampleDefinition {
 
   const genRunStart = gen.at("() {\n  return runSteppingPipeline();");
   const genRunEnd = gen.after("  return runSteppingPipeline();\n}");
+
+  // TDZ boundaries: generated let/const become readable after their declaration ran.
+  const afterCl = gen.after("const cl = __openClearance(id);");
+  const afterSub = gen.after("const sub = val + duty;");
+  const afterOutlinedTot = gen.after("const tot = sub + fee;");
+  const afterFee = gen.after("const fee = __checkPositive(15);");
+  const afterR = gen.after('const r = cat === "electronics" ? 0.12 : 0.05;');
+  const afterRaw = gen.after("const raw = _inlinedArg * r;");
+  const afterDuty = genInlinedEnd;
+  const afterTot = gen.after("let tot = 0;");
+  const afterS = gen.after('const s = dispatchPackage("SHP-9042", 450, "electronics");');
+  const afterSt = gen.after('const st = "Dispatched " + s.trackingId + ": $" + s.totalCost;');
 
   const builder = new SafeScopeInfoBuilder();
 
@@ -325,32 +363,63 @@ export function createExample05(): ExampleDefinition {
       scopeKey: "dispatchPackage",
       isStackFrame: true,
       isHidden: true,
-      values: ["id", "val", "cat", "fee", "duty", "tot"],
+      values: [
+        "id",
+        "val",
+        "cat",
+        "fee",
+        "duty",
+        // totalCost is still 0 until the outlined 'const tot' is assigned.
+        [
+          { from: outlinedStart, to: afterOutlinedTot, value: "0" },
+          { from: afterOutlinedTot, to: outlinedEnd, value: "tot" },
+        ],
+      ],
     })
     .startRange(outlinedBodyStart.line, outlinedBodyStart.column, {
       scopeKey: "customsBlock",
       isStackFrame: false,
-      values: ["cl", "sub"],
+      values: [
+        availableFrom(outlinedBodyStart, afterCl, outlinedBodyEnd, "cl"),
+        availableFrom(outlinedBodyStart, afterSub, outlinedBodyEnd, "sub"),
+      ],
     })
     .endRange(outlinedBodyEnd.line, outlinedBodyEnd.column)
     .endRange(outlinedEnd.line, outlinedEnd.column)
     .startRange(genDispatchStart.line, genDispatchStart.column, {
       scopeKey: "dispatchPackage",
       isStackFrame: true,
-      values: ["id", "val", "cat", "fee", "duty", "tot"],
+      values: [
+        "id",
+        "val",
+        "cat",
+        availableFrom(genDispatchStart, afterFee, genDispatchEnd, "fee"),
+        availableFrom(genDispatchStart, afterDuty, genDispatchEnd, "duty"),
+        availableFrom(genDispatchStart, afterTot, genDispatchEnd, "tot"),
+      ],
     })
     .startRange(genInlinedStart.line, genInlinedStart.column, {
       scopeKey: "calculateCustomsDuty",
       isStackFrame: false,
       callSite: callSiteCalculateDuty,
-      values: ["_inlinedArg", "cat", "r", "raw", "duty"],
+      values: [
+        "_inlinedArg",
+        "cat",
+        availableFrom(genInlinedStart, afterR, genInlinedEnd, "r"),
+        availableFrom(genInlinedStart, afterRaw, genInlinedEnd, "raw"),
+        // roundedDuty: 'duty' is only assigned by the very last statement of this range.
+        null,
+      ],
     })
     .endRange(genInlinedEnd.line, genInlinedEnd.column)
     .endRange(genDispatchEnd.line, genDispatchEnd.column)
     .startRange(genPipelineStart.line, genPipelineStart.column, {
       scopeKey: "runSteppingPipeline",
       isStackFrame: true,
-      values: ["s", "st"],
+      values: [
+        availableFrom(genPipelineStart, afterS, genPipelineEnd, "s"),
+        availableFrom(genPipelineStart, afterSt, genPipelineEnd, "st"),
+      ],
     })
     .endRange(genPipelineEnd.line, genPipelineEnd.column)
     .startRange(genRunStart.line, genRunStart.column, {
@@ -451,6 +520,9 @@ export function createExample05(): ExampleDefinition {
     },
   ];
 
+  // 1-based line number in stepping.ts, for walkthrough text.
+  const L = (needle: string) => orig.lineNumber(needle);
+
   return {
     id: "05-logical-stepping",
     number: "05",
@@ -491,42 +563,43 @@ export function createExample05(): ExampleDefinition {
         featureTag: "Logical Stepping",
         title: "1. Step Over (F10) an Inlined Call & Pure Compiler Helpers",
         tryPrompt:
-          'Click **"Run & Pause in Debugger"** to pause at `debugger;` (line 22 of `stepping.ts`), then press **Step Over (`F10`)** three times.',
+          `Click **"Run & Pause in Debugger"** to pause at \`debugger;\` (line ${L("debugger;")} of \`stepping.ts\`), then press **Step Over (\`F10\`)** three times.`,
         checkPoints: [
-          "**1st `F10` (Line 23 `const handlingFee = 15;`):** Stops on line 23 (`__checkPositive(15)` in `bundle.js` is blackboxed automatically).",
-          "**2nd `F10` (Line 24 `const dutyAmount = calculateCustomsDuty(...)`):** Stops at the call site before entering the inlined range.",
-          "**3rd `F10` (Skips Inlined Body &rarr; Line 28 `let totalCost = 0;`):** DevTools passes the inlined callee range in `skipList`, skipping all 3 statements of `calculateCustomsDuty`!",
+          `**At the \`debugger;\`:** \`handlingFee\`, \`dutyAmount\` and \`totalCost\` show as \`<unavailable>\` (not initialized yet).`,
+          `**1st \`F10\` (Line ${L("const handlingFee")} \`const handlingFee = 15;\`):** Stops on line ${L("const handlingFee")} (\`__checkPositive(15)\` in \`bundle.js\` is not entered).`,
+          `**2nd \`F10\` (Line ${L("const dutyAmount")} \`const dutyAmount = calculateCustomsDuty(...)\`):** Stops at the call site before entering the inlined range.`,
+          `**3rd \`F10\` (Skips Inlined Body &rarr; Line ${L("let totalCost")} \`let totalCost = 0;\`):** DevTools passes the inlined callee range in \`skipList\`, skipping all 3 statements of \`calculateCustomsDuty\`!`,
         ],
       },
       {
         featureTag: "Logical Stepping",
         title: "2. Step Into (F11) & Step Out (Shift+F11) of an Inlined Function",
         tryPrompt:
-          'Re-run, press `F10` twice to reach line 24 (`calculateCustomsDuty(...)`), press **Step Into (`F11`)**, then press **Step Out (`Shift+F11`)**.',
+          `Re-run, press \`F10\` twice to reach line ${L("const dutyAmount")} (\`calculateCustomsDuty(...)\`), press **Step Into (\`F11\`)**, then press **Step Out (\`Shift+F11\`)**.`,
         checkPoints: [
-          "**Step Into (`F11`) Enters Inlined Body:** Execution moves to line 11 (`const rate = ...`) inside `calculateCustomsDuty`, and the Call Stack adds the virtual `calculateCustomsDuty` frame.",
-          "**Pure Helper Skipped on `F11`:** Even though `const _inlinedArg = __checkPositive(val)` runs first on that line, V8 blackboxes `__checkPositive` so `F11` lands directly in `calculateCustomsDuty`.",
-          "**Step Out (`Shift+F11`) Returns to Caller:** Pressing `Shift+F11` inside `calculateCustomsDuty` skips its remaining lines (`rawDuty`, `roundedDuty`) and pauses back in `dispatchPackage` on line 28 (`let totalCost = 0;`).",
+          `**Step Into (\`F11\`) Enters Inlined Body:** Execution moves to line ${L("const rate")} (\`const rate = ...\`) inside \`calculateCustomsDuty\`, and the Call Stack adds the virtual \`calculateCustomsDuty\` frame.`,
+          "**Pure Helper Skipped on `F11`:** Even though `const _inlinedArg = __checkPositive(val)` runs first on that line, `__checkPositive` has no original scope, so `F11` lands directly in `calculateCustomsDuty`.",
+          `**Step Out (\`Shift+F11\`) Returns to Caller:** Pressing \`Shift+F11\` inside \`calculateCustomsDuty\` skips its remaining lines (\`rawDuty\`, \`roundedDuty\`) and pauses back in \`dispatchPackage\` on line ${L("let totalCost")} (\`let totalCost = 0;\`).`,
         ],
       },
       {
         featureTag: "Logical Stepping",
         title: "3. Step Over (F10) Seamlessly Through an Outlined Block",
         tryPrompt:
-          "From line 28 (`let totalCost = 0;`), press **Step Over (`F10`)** repeatedly through lines 30–36.",
+          `From line ${L("let totalCost")} (\`let totalCost = 0;\`), press **Step Over (\`F10\`)** repeatedly through lines ${L("const clearance")}–${L("return { trackingId")}.`,
         checkPoints: [
-          "**Enters `_outlinedCustomsBlock` Automatically:** Even though `{ const clearance = ... }` is extracted into a separate function `_outlinedCustomsBlock` in `bundle.js`, `F10` steps *into* line 30 (`const clearance = openCustomsClearance(trackingId);`) instead of skipping the call!",
-          "**Merged Call Stack & Live Scopes:** While paused inside the outlined block, the Call Stack shows `dispatchPackage` (hiding `_outlinedCustomsBlock`), and the Scope pane shows both `Block` (`clearance`, `subtotalWithDuty`) and `dispatchPackage` variables.",
-          "**Seamless Exit:** Pressing `F10` after `clearance.commit(totalCost);` skips the unmapped `return tot;` and pauses on line 36 (`return { trackingId, dutyAmount, totalCost };`).",
+          `**Enters \`_outlinedCustomsBlock\` Automatically:** Even though \`{ const clearance = ... }\` is extracted into a separate function \`_outlinedCustomsBlock\` in \`bundle.js\`, \`F10\` steps *into* line ${L("const clearance")} (\`const clearance = openCustomsClearance(trackingId);\`) instead of skipping the call!`,
+          "**Merged Call Stack & Live Scopes:** While paused inside the outlined block, the Call Stack shows `dispatchPackage` (hiding `_outlinedCustomsBlock`), and the Scope pane shows both `Block` (`clearance`, `subtotalWithDuty`) and `dispatchPackage` variables. `totalCost` is `0` until the `totalCost = ...` line ran.",
+          `**Seamless Exit:** Pressing \`F10\` after \`clearance.commit(totalCost);\` skips the unmapped \`return tot;\` and pauses on line ${L("return { trackingId")} (\`return { trackingId, dutyAmount, totalCost };\`).`,
         ],
       },
       {
         featureTag: "Logical Stepping",
         title: "4. Step Out (Shift+F11) from Inside an Outlined Block",
         tryPrompt:
-          "Re-run, step (`F10`) into line 31 (`const subtotalWithDuty = ...`) inside the outlined block, and press **Step Out (`Shift+F11`)**.",
+          `Re-run, step (\`F10\`) into line ${L("const subtotalWithDuty")} (\`const subtotalWithDuty = ...\`) inside the outlined block, and press **Step Out (\`Shift+F11\`)**.`,
         checkPoints: [
-          "**Exits the Whole Authored Function (`dispatchPackage`):** Instead of merely returning from `_outlinedCustomsBlock` back into `dispatchPackage`, DevTools unwinds both `_outlinedCustomsBlock` and `dispatchPackage`, pausing in the caller `runSteppingPipeline()` (line 41)!",
+          `**Exits the Whole Authored Function (\`dispatchPackage\`):** Instead of merely returning from \`_outlinedCustomsBlock\` back into \`dispatchPackage\`, DevTools unwinds both \`_outlinedCustomsBlock\` and \`dispatchPackage\`, pausing in the caller \`runSteppingPipeline()\` (line ${L("const status")})!`,
         ],
       },
     ],
@@ -535,7 +608,7 @@ export function createExample05(): ExampleDefinition {
         expression: "{ trackingId, declaredValue, handlingFee, dutyAmount }",
         expectedResult: '{ trackingId: "SHP-9042", declaredValue: 450, handlingFee: 15, dutyAmount: 54 }',
         explanation:
-          "Works both in `dispatchPackage` and while paused inside `_outlinedCustomsBlock` via its `dispatchPackage` definition scope bindings.",
+          "Works in `dispatchPackage` once `dutyAmount` is initialized (before that, `handlingFee`/`dutyAmount` are unavailable) and while paused inside `_outlinedCustomsBlock` via its `dispatchPackage` definition scope bindings.",
       },
       {
         expression: "subtotalWithDuty + handlingFee",

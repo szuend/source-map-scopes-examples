@@ -1,4 +1,5 @@
 import { SafeScopeInfoBuilder } from "@chrome-devtools/source-map-scopes-codec";
+import { availableFrom } from "../lib/bindings.ts";
 import { TextLocator } from "../lib/locator.ts";
 import type { ExampleDefinition, MappingPoint } from "../lib/sourcemap.ts";
 
@@ -123,6 +124,8 @@ builder
 //    - __withCompilerTrampoline is marked with isStackFrame: true, isHidden: true
 //      so DevTools omits it from the Call Stack!
 //    - Captured closure variables are unpacked from tuple _c[0..3].
+//    - availableFrom(start, from, end, value) = unavailable in [start, from), bound to value in [from, end).
+//      Used for generated const (_c, rem, util) that are still in their TDZ before their declaration ran.
 builder
   .startRange(0, 0, {
     scopeKey: "module",
@@ -141,16 +144,23 @@ builder
   .startRange(genClosureStart.line, genClosureStart.column, {
     scopeKey: "createEndpointHandler",
     isStackFrame: false,
-    values: ["_c[0]", "_c[1]", "_c[2]", "_c[3]"],
+    values: [0, 1, 2, 3].map((i) =>
+      availableFrom(genClosureStart, afterC, genClosureEnd, \`_c[\${i}]\`)
+    ),
   })
   .startRange(genHandlerStart.line, genHandlerStart.column, {
     scopeKey: "handleRequest",
     isStackFrame: true,
-    values: ["ip", "w", "rem", "rem >= 0"],
+    values: [
+      "ip",
+      "w",
+      availableFrom(genHandlerStart, afterRem, genHandlerEnd, "rem"),
+      availableFrom(genHandlerStart, afterRem, genHandlerEnd, "rem >= 0"),
+    ],
   })
   .startRange(genIfStart.line, genIfStart.column, {
     scopeKey: "ifBlock",
-    values: ["util"],
+    values: [availableFrom(genIfStart, afterUtil, genIfEnd, "util")],
   })
   .endRange(genIfEnd.line, genIfEnd.column)
   .endRange(genHandlerEnd.line, genHandlerEnd.column)
@@ -216,6 +226,11 @@ export function createExample04(): ExampleDefinition {
   const genRunStart = gen.at("() {\n  return executeRateLimitCheck();");
   const genRunEnd = gen.after("  return executeRateLimitCheck();\n}");
 
+  // TDZ boundaries: generated const become readable after their declaration ran.
+  const afterC = gen.after('const _c = ["/api/v2/inference", 50, 60, 12];');
+  const afterRem = gen.after("const rem = _c[1] - _c[3];");
+  const afterUtil = gen.after("const util = Number(((_c[3] / _c[1]) * 100).toFixed(1));");
+
   const builder = new SafeScopeInfoBuilder();
 
   builder
@@ -276,16 +291,23 @@ export function createExample04(): ExampleDefinition {
     .startRange(genClosureStart.line, genClosureStart.column, {
       scopeKey: "createEndpointHandler",
       isStackFrame: false,
-      values: ["_c[0]", "_c[1]", "_c[2]", "_c[3]"],
+      values: [0, 1, 2, 3].map((i) =>
+        availableFrom(genClosureStart, afterC, genClosureEnd, `_c[${i}]`)
+      ),
     })
     .startRange(genHandlerStart.line, genHandlerStart.column, {
       scopeKey: "handleRequest",
       isStackFrame: true,
-      values: ["ip", "w", "rem", "rem >= 0"],
+      values: [
+        "ip",
+        "w",
+        availableFrom(genHandlerStart, afterRem, genHandlerEnd, "rem"),
+        availableFrom(genHandlerStart, afterRem, genHandlerEnd, "rem >= 0"),
+      ],
     })
     .startRange(genIfStart.line, genIfStart.column, {
       scopeKey: "ifBlock",
-      values: ["util"],
+      values: [availableFrom(genIfStart, afterUtil, genIfEnd, "util")],
     })
     .endRange(genIfEnd.line, genIfEnd.column)
     .endRange(genHandlerEnd.line, genHandlerEnd.column)
@@ -349,6 +371,12 @@ export function createExample04(): ExampleDefinition {
       orig: orig.at("return {\n          region: DEFAULT_REGION,"),
     },
     {
+      // Call position of the visible executeRateLimitCheck frame (the
+      // trampoline + callback in between are hidden).
+      gen: gen.at("return __withCompilerTrampoline("),
+      orig: orig.at('return handler("192.0.2.44", 8);'),
+    },
+    {
       gen: gen.at('return handleRequest("192.0.2.44", 8);'),
       orig: orig.at('return handler("192.0.2.44", 8);'),
     },
@@ -396,7 +424,7 @@ export function createExample04(): ExampleDefinition {
         tryPrompt:
           'Click **"Run & Pause in Debugger"** to pause inside `handleRequest` in `closures-hidden.ts` and inspect the **Call Stack** pane.',
         checkPoints: [
-          "**Clean Call Stack:** `handleRequest` appears called directly by `executeRateLimitCheck`.",
+          `**Clean Call Stack:** \`handleRequest\` appears called directly by \`executeRateLimitCheck\` (line ${orig.lineNumber('return handler("192.0.2.44", 8);')}).`,
           "**Hidden Runtime Wrappers:** Both `__withCompilerTrampoline` and its anonymous callback (`isHidden: true`) are automatically omitted from the stack trace.",
         ],
       },
@@ -404,12 +432,12 @@ export function createExample04(): ExampleDefinition {
         featureTag: "Scope View",
         title: "Inspect the Multi-Level Scope Chain (Block -> Local -> Closure -> Module)",
         tryPrompt:
-          "While paused at `debugger;` on line 24 of `closures-hidden.ts`, expand each section in the **Scope** sidebar.",
+          `While paused at \`debugger;\` on line ${orig.lineNumber("debugger;")} of \`closures-hidden.ts\`, expand each section in the **Scope** sidebar.`,
         checkPoints: [
           "**Block Scope (`if (allowed)`):** Shows `burstUtilization: 40`.",
           '**Local Scope (`handleRequest`):** Shows `clientIp: "192.0.2.44"`, `requestWeight: 8`, `remainingTokens: 30`, and synthesized `allowed: true`.',
-          '**Closure Scope (`createEndpointHandler`):** Unpacks tuple `_c[0..3]` into `endpointName: "/api/v2/inference"`, `maxBurst: 50`, `windowSeconds: 60`, and `usedTokens: 20`.',
-          '**Module Scope:** Shows `DEFAULT_REGION: "us-central1"` (and `RateLimitConfig` as `<unavailable>`).',
+          '**Closure Scope (`createEndpointHandler`):** Unpacks tuple `_c[0..3]` into `endpointName: "/api/v2/inference"`, `maxBurst: 50`, `windowSeconds: 60`, and `usedTokens: 20`. `executeRateLimitCheck`\'s variables (`limiter`, `handler`) must not show up: it is not a lexical parent of `handleRequest`.',
+          '**Module Scope:** Shows `DEFAULT_REGION: "us-central1"` (and `RateLimiter` as `<unavailable>`).',
         ],
       },
       {
@@ -425,7 +453,7 @@ export function createExample04(): ExampleDefinition {
         featureTag: "Conditional Breakpoints",
         title: "Break Conditionally on Tuple-Packed Closure State",
         tryPrompt:
-          'Right-click line 25 (`return { region: DEFAULT_REGION, ... }`), add a conditional breakpoint `burstUtilization >= 40 && usedTokens === 20`, resume (`F8`), and re-run.',
+          `Right-click line ${orig.lineNumber("return {\n          region: DEFAULT_REGION,")} (\`return { region: DEFAULT_REGION, ... }\`), add a conditional breakpoint \`burstUtilization >= 40 && usedTokens === 20\`, resume (\`F8\`), and re-run.`,
         checkPoints: [
           "**Cross-Scope Condition Rewriting:** DevTools rewrites `burstUtilization` to `util` and `usedTokens` to `_c[3]`, pausing cleanly at the `return` statement.",
         ],

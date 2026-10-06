@@ -323,10 +323,10 @@ export function createExample02(): ExampleDefinition {
         featureTag: "Conditional Breakpoints",
         title: "Test Autocomplete & Sub-Range Conditional Breakpoints",
         tryPrompt:
-          "Type `cal`, `temp`, or `statusB` in the Console to check autocomplete, or set a conditional breakpoint on line 19 (`const statusBadge = ...`) with condition `temperatureCelsius >= 70 && calibratedMv === 1250`.",
+          `Type \`cal\`, \`temp\`, or \`statusB\` in the Console to check autocomplete, or set a conditional breakpoint on line ${orig.lineNumber("const statusBadge =")} (\`const statusBadge = ...\`) with condition \`temperatureCelsius >= 70 && calibratedMv === 1250\`.`,
         checkPoints: [
           "**Autocomplete:** All three coalesced variables appear in Console and breakpoint autocomplete.",
-          "**Sub-Range Condition Evaluation:** At line 19, DevTools simultaneously resolves `temperatureCelsius` (`r`) and `calibratedMv` (`r * 10 + 500`) to pause execution.",
+          `**Sub-Range Condition Evaluation:** At line ${orig.lineNumber("const statusBadge =")}, DevTools simultaneously resolves \`temperatureCelsius\` (\`r\`) and \`calibratedMv\` (\`r * 10 + 500\`) to pause execution.`,
         ],
       },
       {

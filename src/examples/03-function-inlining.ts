@@ -1,4 +1,5 @@
 import { SafeScopeInfoBuilder } from "@chrome-devtools/source-map-scopes-codec";
+import { availableFrom } from "../lib/bindings.ts";
 import { TextLocator } from "../lib/locator.ts";
 import type { ExampleDefinition, MappingPoint } from "../lib/sourcemap.ts";
 
@@ -116,6 +117,8 @@ builder
 
 // 2. Generated Ranges: 3 nested inlined ranges (isStackFrame: false + callSite)
 //    inside the single physical function processCustomerOrder (isStackFrame: true)
+// availableFrom(start, from, end, value) = unavailable in [start, from), bound to value in [from, end).
+// Used for generated const (pct, d, p) that are still in their TDZ before their declaration ran.
 builder
   .startRange(0, 0, {
     scopeKey: "module",
@@ -124,25 +127,31 @@ builder
   .startRange(genOrderStart.line, genOrderStart.column, {
     scopeKey: "processCustomerOrder",
     isStackFrame: true,
-    values: ["n", "s", "y", "p"],
+    values: ["n", "s", "y", availableFrom(genOrderStart, afterP, genOrderEnd, "p")],
   })
   .startRange(genCartStart.line, genCartStart.column, {
     scopeKey: "calculateCartTotal",
     isStackFrame: false,
-    callSite: callSiteCalculateCartTotal, // inlining.ts:30:18
-    values: ["s", "y", "15", "d", "p"],
+    callSite: callSiteCalculateCartTotal, // calculateCartTotal(...) in processCustomerOrder
+    values: [
+      "s",
+      "y",
+      "15",
+      availableFrom(genCartStart, afterD, genCartEnd, "d"), // discountAmount
+      null, // finalTotal: 'p' is only assigned by the very last statement of this range
+    ],
   })
   .startRange(genTierStart.line, genTierStart.column, {
     scopeKey: "computeTierDiscount",
     isStackFrame: false,
-    callSite: callSiteComputeTierDiscount, // inlining.ts:20:25
-    values: ["s", "y", "y * 4", "pct"],
+    callSite: callSiteComputeTierDiscount, // computeTierDiscount(...) in calculateCartTotal
+    values: ["s", "y", "y * 4", availableFrom(genTierStart, afterPct, genTierEnd, "pct")],
   })
   .startRange(genClampStart.line, genClampStart.column, {
     scopeKey: "clampPercentage",
     isStackFrame: false,
-    callSite: callSiteClampPercentage, // inlining.ts:11:27
-    values: ["y * 4", "5", "25", "pct"],
+    callSite: callSiteClampPercentage, // clampPercentage(...) in computeTierDiscount
+    values: ["y * 4", "5", "25", availableFrom(genClampStart, afterPct, genClampEnd, "pct")],
   })
   .endRange(genClampEnd.line, genClampEnd.column)
   .endRange(genTierEnd.line, genTierEnd.column)
@@ -191,6 +200,11 @@ export function createExample03(): ExampleDefinition {
   const genClampEnd = gen.after("    console.error(err);\n  }");
   const genTierEnd = gen.after("const d = s * (pct / 100);");
   const genCartEnd = gen.after("const p = Math.max(0, s - d - 15);");
+
+  // TDZ boundaries: generated const become readable after their declaration ran.
+  const afterPct = gen.after("const pct = Math.min(25, Math.max(5, y * 4));");
+  const afterD = genTierEnd;
+  const afterP = genCartEnd;
 
   const genRunStart = gen.at('() {\n  return processCustomerOrder("Grace Hopper", 240, 8, true);');
   const genRunEnd = gen.after('return processCustomerOrder("Grace Hopper", 240, 8, true);\n}');
@@ -260,25 +274,47 @@ export function createExample03(): ExampleDefinition {
     .startRange(genOrderStart.line, genOrderStart.column, {
       scopeKey: "processCustomerOrder",
       isStackFrame: true,
-      values: ["n", "s", "y", "p"],
+      values: [
+        "n",
+        "s",
+        "y",
+        availableFrom(genOrderStart, afterP, genOrderEnd, "p"),
+      ],
     })
     .startRange(genCartStart.line, genCartStart.column, {
       scopeKey: "calculateCartTotal",
       isStackFrame: false,
       callSite: callSiteCalculateCartTotal,
-      values: ["s", "y", "15", "d", "p"],
+      values: [
+        "s",
+        "y",
+        "15",
+        availableFrom(genCartStart, afterD, genCartEnd, "d"),
+        // finalTotal: 'p' is only assigned by the very last statement of this range.
+        null,
+      ],
     })
     .startRange(genTierStart.line, genTierStart.column, {
       scopeKey: "computeTierDiscount",
       isStackFrame: false,
       callSite: callSiteComputeTierDiscount,
-      values: ["s", "y", "y * 4", "pct"],
+      values: [
+        "s",
+        "y",
+        "y * 4",
+        availableFrom(genTierStart, afterPct, genTierEnd, "pct"),
+      ],
     })
     .startRange(genClampStart.line, genClampStart.column, {
       scopeKey: "clampPercentage",
       isStackFrame: false,
       callSite: callSiteClampPercentage,
-      values: ["y * 4", "5", "25", "pct"],
+      values: [
+        "y * 4",
+        "5",
+        "25",
+        availableFrom(genClampStart, afterPct, genClampEnd, "pct"),
+      ],
     })
     .endRange(genClampEnd.line, genClampEnd.column)
     .endRange(genTierEnd.line, genTierEnd.column)
@@ -377,9 +413,9 @@ export function createExample03(): ExampleDefinition {
         featureTag: "Call Stack",
         title: "Inspect the 4-Frame Virtual Call Stack",
         tryPrompt:
-          'Click **"Run & Pause in Debugger"** to pause at `debugger;` on line 5 of `inlining.ts` (`clampPercentage`).',
+          `Click **"Run & Pause in Debugger"** to pause at \`debugger;\` on line ${orig.lineNumber("debugger;")} of \`inlining.ts\` (\`clampPercentage\`).`,
         checkPoints: [
-          "**4 Virtual Frames from 1 Physical Frame:** Even though only `processCustomerOrder` exists in `bundle.js`, the Call Stack pane shows `clampPercentage` (line 5) &rarr; `computeTierDiscount` (line 11) &rarr; `calculateCartTotal` (line 20) &rarr; `processCustomerOrder` (line 30).",
+          `**4 Virtual Frames from 1 Physical Frame:** Even though only \`processCustomerOrder\` exists in \`bundle.js\`, the Call Stack pane shows \`clampPercentage\` (line ${orig.lineNumber("debugger;")}) &rarr; \`computeTierDiscount\` (line ${orig.lineNumber("clampPercentage(rawPercent")}) &rarr; \`calculateCartTotal\` (line ${orig.lineNumber("computeTierDiscount(subtotal")}) &rarr; \`processCustomerOrder\` (line ${orig.lineNumber("calculateCartTotal(subtotal")}).`,
         ],
       },
       {
@@ -389,8 +425,9 @@ export function createExample03(): ExampleDefinition {
           'Click each frame in the **Call Stack** pane (`clampPercentage`, `computeTierDiscount`, `calculateCartTotal`, `processCustomerOrder`) and watch the editor and **Scope** pane.',
         checkPoints: [
           "**`clampPercentage` Frame:** Shows `value: 32`, `min: 5`, `max: 25`, `clamped: 25`.",
-          "**`computeTierDiscount` Frame:** Highlights the call site on line 11 (`clampPercentage(rawPercent, 5, 25)`) and switches Scope variables to `baseAmount: 240`, `loyaltyYears: 8`, `rawPercent: 32`, `effectivePercent: 25`.",
-          "**`calculateCartTotal` Frame:** Highlights line 20 and shows `subtotal: 240`, `loyaltyYears: 8`, `couponFixed: 15`.",
+          `**\`computeTierDiscount\` Frame:** Highlights the call site on line ${orig.lineNumber("clampPercentage(rawPercent")} (\`clampPercentage(rawPercent, 5, 25)\`) and switches Scope variables to \`baseAmount: 240\`, \`loyaltyYears: 8\`, \`rawPercent: 32\`, \`effectivePercent: 25\`.`,
+          `**\`calculateCartTotal\` Frame:** Highlights line ${orig.lineNumber("computeTierDiscount(subtotal")} and shows \`subtotal: 240\`, \`loyaltyYears: 8\`, \`couponFixed: 15\`. \`discountAmount\` and \`finalTotal\` are \`<unavailable>\` (not computed yet).`,
+          `**\`processCustomerOrder\` Frame:** Highlights line ${orig.lineNumber("calculateCartTotal(subtotal")} and shows \`customerName: "Grace Hopper"\`, \`subtotal: 240\`, \`loyaltyYears: 8\`. \`payable\` is \`<unavailable>\`. The generated-only parameter \`pause\` must not show up.`,
         ],
       },
       {
@@ -406,7 +443,7 @@ export function createExample03(): ExampleDefinition {
         featureTag: "Conditional Breakpoints",
         title: "Set a Conditional Breakpoint Inside an Inlined Helper",
         tryPrompt:
-          'Right-click line 12 (`return baseAmount * (effectivePercent / 100);` inside `computeTierDiscount`), set conditional breakpoint `rawPercent > effectivePercent`, resume (`F8`), and click **"Run & Pause in Debugger"** again.',
+          `Right-click line ${orig.lineNumber("return baseAmount")} (\`return baseAmount * (effectivePercent / 100);\` inside \`computeTierDiscount\`), set conditional breakpoint \`rawPercent > effectivePercent\`, resume (\`F8\`), and click **"Run & Pause in Debugger"** again.`,
         checkPoints: [
           "**Inlined Condition Evaluation:** DevTools evaluates `(y * 4) > pct` (`32 > 25` &rarr; `true`) and pauses directly inside the inlined `computeTierDiscount` frame.",
         ],

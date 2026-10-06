@@ -88,6 +88,15 @@ export class TextLocator {
   }
 
   /**
+   * Returns the 1-based line number (as displayed in editors / DevTools) of the
+   * start of `needle`. Use this in walkthrough text instead of hard-coding
+   * line numbers.
+   */
+  lineNumber(needle: string, occurrence = 1): number {
+    return this.at(needle, occurrence).line + 1;
+  }
+
+  /**
    * Returns an `OriginalPosition` (`{ sourceIndex, line, column }`) at the start of `needle`.
    */
   origAt(needle: string, occurrence = 1, sourceIndex = 0): OriginalPosition {

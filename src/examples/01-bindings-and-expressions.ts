@@ -1,4 +1,5 @@
 import { SafeScopeInfoBuilder } from "@chrome-devtools/source-map-scopes-codec";
+import { availableFrom } from "../lib/bindings.ts";
 import { TextLocator } from "../lib/locator.ts";
 import type { ExampleDefinition, MappingPoint } from "../lib/sourcemap.ts";
 
@@ -109,6 +110,8 @@ builder
   .endSource();
 
 // 2. Generated Ranges & Binding Expressions (bundle.js)
+// availableFrom(start, from, end, value) = unavailable in [start, from), bound to value in [from, end).
+// Used for generated let/const that are still in their TDZ before their declaration ran.
 builder
   .startRange(0, 0, {
     scopeKey: "module",
@@ -123,19 +126,20 @@ builder
       'c.firstName + " " + c.lastName', // fullName (synthesized!)
       'c.tier === "vip"',               // isVip (synthesized!)
       null,                             // rawAuditToken (dead-code eliminated -> <unavailable>)
-      "s",                              // subtotal
+      availableFrom(genFuncStart, afterS, genFuncEnd, "s"),                     // subtotal
       'c.tier === "vip" ? 0.15 : 0',    // discountRate (synthesized!)
-      "d",                              // discountedSubtotal
-      "d * 0.085",                      // taxAmount (synthesized!)
-      "d >= 100 ? 0 : 12.99",           // shippingFee (synthesized!)
-      "g",                              // grandTotal
+      availableFrom(genFuncStart, afterD, genFuncEnd, "d"),                     // discountedSubtotal
+      availableFrom(genFuncStart, afterD, genFuncEnd, "d * 0.085"),             // taxAmount (synthesized!)
+      availableFrom(genFuncStart, afterD, genFuncEnd, "d >= 100 ? 0 : 12.99"),  // shippingFee (synthesized!)
+      availableFrom(genFuncStart, afterG, genFuncEnd, "g"),                     // grandTotal
     ],
   })
   .startRange(genLoopStart.line, genLoopStart.column, {
     scopeKey: "forOfLoop",
     values: [
-      "i",                        // item
-      "i.unitPrice * i.quantity", // lineTotal (synthesized!)
+      // 'i' only exists once the loop body is entered
+      availableFrom(genLoopStart, genLoopBody, genLoopEnd, "i"),                        // item
+      availableFrom(genLoopStart, genLoopBody, genLoopEnd, "i.unitPrice * i.quantity"), // lineTotal (synthesized!)
     ],
   })
   .endRange(genLoopEnd.line, genLoopEnd.column)
@@ -165,8 +169,14 @@ export function createExample01(): ExampleDefinition {
   const genFuncEnd = gen.after("grandTotal: Number(g.toFixed(2)) };\n}");
   const genLoopStart = gen.at("for (const i of a) {");
   const genLoopEnd = gen.after("    s += i.unitPrice * i.quantity;\n  }");
+  const genLoopBody = gen.at("s += i.unitPrice * i.quantity;");
   const genRunStart = gen.at("() {\n  return calculateInvoice(");
   const genRunEnd = gen.after("  );\n}");
+
+  // TDZ boundaries: generated let/const become readable after their declaration ran.
+  const afterS = gen.after("let s = 0;");
+  const afterD = gen.after('const d = s * (c.tier === "vip" ? 0.85 : 1);');
+  const afterG = gen.after("const g = d * 1.085 + (d >= 100 ? 0 : 12.99);");
 
   const builder = new SafeScopeInfoBuilder();
 
@@ -225,17 +235,25 @@ export function createExample01(): ExampleDefinition {
         'c.firstName + " " + c.lastName',
         'c.tier === "vip"',
         null,
-        "s",
+        availableFrom(genFuncStart, afterS, genFuncEnd, "s"),
         'c.tier === "vip" ? 0.15 : 0',
-        "d",
-        "d * 0.085",
-        "d >= 100 ? 0 : 12.99",
-        "g",
+        availableFrom(genFuncStart, afterD, genFuncEnd, "d"),
+        availableFrom(genFuncStart, afterD, genFuncEnd, "d * 0.085"),
+        availableFrom(genFuncStart, afterD, genFuncEnd, "d >= 100 ? 0 : 12.99"),
+        availableFrom(genFuncStart, afterG, genFuncEnd, "g"),
       ],
     })
     .startRange(genLoopStart.line, genLoopStart.column, {
       scopeKey: "forOfLoop",
-      values: ["i", "i.unitPrice * i.quantity"],
+      values: [
+        availableFrom(genLoopStart, genLoopBody, genLoopEnd, "i"),
+        availableFrom(
+          genLoopStart,
+          genLoopBody,
+          genLoopEnd,
+          "i.unitPrice * i.quantity",
+        ),
+      ],
     })
     .endRange(genLoopEnd.line, genLoopEnd.column)
     .endRange(genFuncEnd.line, genFuncEnd.column)
@@ -350,7 +368,7 @@ export function createExample01(): ExampleDefinition {
         featureTag: "Inline Hints & Popover",
         title: "Check Editor Inline Hints & Hover Popovers",
         tryPrompt:
-          "While paused in `order-pricing.ts`, inspect the editor lines 19–34 and hover over variables in the source code.",
+          `While paused in \`order-pricing.ts\`, inspect the editor lines ${orig.lineNumber("const fullName")}–${orig.lineNumber("debugger;") - 1} and hover over variables in the source code.`,
         checkPoints: [
           "**Inline Value Hints:** Authored variables (`subtotal`, `discountedSubtotal`, `grandTotal`) show live inline values at the end of their lines.",
           "**Hover Popovers:** Hovering over `customer`, `taxAmount`, or `TAX_RATE` opens an interactive preview evaluated from the source map binding.",
@@ -369,7 +387,7 @@ export function createExample01(): ExampleDefinition {
         featureTag: "Conditional Breakpoints",
         title: "Break Conditionally Inside the Loop Using Original Names",
         tryPrompt:
-          "Right-click line 26 (`subtotal += lineTotal;`), add a conditional breakpoint `item.quantity > 1 && lineTotal < 100`, resume (`F8`), and click **\"Run & Pause in Debugger\"** again.",
+          `Right-click line ${orig.lineNumber("subtotal += lineTotal;")} (\`subtotal += lineTotal;\`), add a conditional breakpoint \`item.quantity > 1 && lineTotal < 100\`, resume (\`F8\`), and click **"Run & Pause in Debugger"** again.`,
         checkPoints: [
           "**Autocomplete in Condition Input:** Typing `item` and `lineTotal` in the breakpoint dialog offers scope-aware suggestions.",
           '**Targeted Pause on Item #2:** V8 skips item 1 (`MECH-KB`, `qty: 1, lineTotal: 140`), pauses inside the `Block` scope only on item 2 (`USB-C-CABLE`, `qty: 2, lineTotal: 45`), and skips item 3.',
