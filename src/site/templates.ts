@@ -23,7 +23,8 @@ function renderCodeTable(code: string): string {
   const lines = code.replace(/\n$/, "").split("\n");
   const rows = lines
     .map((line, idx) => {
-      const isDebugger = line.includes("debugger;");
+      const isDebugger = line.includes("debugger;") ||
+        line.includes("emscripten_debugger();");
       return `<tr class="code-line-row${isDebugger ? " debugger-line" : ""}">
         <td class="code-line-num">${idx + 1}</td>
         <td class="code-line-text">${escapeHtml(line) || " "}</td>
@@ -81,7 +82,18 @@ function renderOriginalScopeTree(scope: OriginalScope | null): string {
   </div>`;
 }
 
-function renderGeneratedRangeTree(range: GeneratedRange): string {
+type FormatGenPos = (pos: { line: number; column: number }) => string;
+
+const formatLineColumn: FormatGenPos = (p) => `${p.line}:${p.column}`;
+
+/** Wasm positions are always on line 0; the column is the module byte offset. */
+const formatWasmOffset: FormatGenPos = (p) =>
+  p.line === 0 ? `0x${p.column.toString(16)}` : `${p.line}:${p.column}`;
+
+function renderGeneratedRangeTree(
+  range: GeneratedRange,
+  fmt: FormatGenPos = formatLineColumn,
+): string {
   const scopeLabel = range.originalScope
     ? `${range.originalScope.kind ?? "Scope"}${
       range.originalScope.name ? `(${range.originalScope.name})` : ""
@@ -108,7 +120,7 @@ function renderGeneratedRangeTree(range: GeneratedRange): string {
             const subSummary = val
               .map(
                 (s) =>
-                  `[${s.from.line}:${s.from.column}-${s.to.line}:${s.to.column}]: ${
+                  `[${fmt(s.from)}-${fmt(s.to)}]: ${
                     s.value ?? "unavailable"
                   }`,
               )
@@ -121,12 +133,12 @@ function renderGeneratedRangeTree(range: GeneratedRange): string {
       : "";
 
   const childrenHtml = range.children
-    .map((c) => renderGeneratedRangeTree(c))
+    .map((c) => renderGeneratedRangeTree(c, fmt))
     .join("");
 
   return `<div class="scope-tree-node">
     <div>
-      <span class="node-badge tag-hints">Range [${range.start.line}:${range.start.column} &rarr; ${range.end.line}:${range.end.column})</span>
+      <span class="node-badge tag-hints">Range [${fmt(range.start)} &rarr; ${fmt(range.end)})</span>
       <strong>&rarr; ${escapeHtml(scopeLabel)}</strong>
       ${range.isStackFrame ? `<span class="node-badge tag-stack">isStackFrame</span>` : `<span class="node-badge" style="background: var(--bg-interactive); color: var(--text-secondary);">isStackFrame: false</span>`}
       ${range.isHidden ? `<span class="node-badge tag-eval">isHidden: true</span>` : ""}
@@ -284,8 +296,15 @@ export function renderExampleHtml(
     )
     .join("");
 
+  const generatedFileName = example.wasm?.fileName ?? "bundle.js";
+  const sourceMapFileName = `${generatedFileName}.map`;
   const generatedRangeTreesHtml = decodedScopeInfo.ranges
-    .map((r) => renderGeneratedRangeTree(r))
+    .map((r) =>
+      renderGeneratedRangeTree(
+        r,
+        example.wasm ? formatWasmOffset : formatLineColumn,
+      )
+    )
     .join("");
 
   const rawMapFormatted = JSON.stringify(sourceMap, null, 2);
@@ -388,7 +407,7 @@ export function renderExampleHtml(
             1. Authored (${escapeHtml(example.originalFileName)})
           </button>
           <button type="button" class="tab-btn" data-tab="tab-gen" role="tab" aria-selected="false">
-            2. Minified (bundle.js)
+            ${example.wasm ? `2. Generated (${escapeHtml(generatedFileName)})` : "2. Minified (bundle.js)"}
           </button>
           <button type="button" class="tab-btn" data-tab="tab-builder" role="tab" aria-selected="false">
             3. SafeScopeInfoBuilder
@@ -396,6 +415,13 @@ export function renderExampleHtml(
           <button type="button" class="tab-btn" data-tab="tab-map" role="tab" aria-selected="false">
             4. Decoded Scopes &amp; .map
           </button>
+          ${
+            example.wasm
+              ? `<button type="button" class="tab-btn" data-tab="tab-glue" role="tab" aria-selected="false">
+            5. JS glue (bundle.js)
+          </button>`
+              : ""
+          }
         </div>
 
         <div class="tab-pane active" id="tab-orig" role="tabpanel">
@@ -403,7 +429,7 @@ export function renderExampleHtml(
         </div>
 
         <div class="tab-pane" id="tab-gen" role="tabpanel">
-          ${renderCodeTable(example.generatedCode)}
+          ${renderCodeTable(example.wasm?.disassembly ?? example.generatedCode)}
         </div>
 
         <div class="tab-pane" id="tab-builder" role="tabpanel">
@@ -417,15 +443,22 @@ export function renderExampleHtml(
               ${originalScopeTreesHtml}
             </div>
             <div class="tree-section">
-              <h3>Decoded GeneratedRange &amp; Binding Tree (bundle.js)</h3>
+              <h3>Decoded GeneratedRange &amp; Binding Tree (${escapeHtml(generatedFileName)})</h3>
               ${generatedRangeTreesHtml}
             </div>
             <div class="tree-section">
-              <h3>Raw Source Map JSON (bundle.js.map)</h3>
+              <h3>Raw Source Map JSON (${escapeHtml(sourceMapFileName)})</h3>
               <pre style="margin: 0; font-size: 0.78rem; color: hsl(204, 80%, 82%); overflow-x: auto;">${escapeHtml(rawMapFormatted)}</pre>
             </div>
           </div>
         </div>
+        ${
+          example.wasm
+            ? `<div class="tab-pane" id="tab-glue" role="tabpanel">
+          ${renderCodeTable(example.generatedCode)}
+        </div>`
+            : ""
+        }
       </aside>
     </div>
   </main>

@@ -18,6 +18,8 @@ Interactive Chrome DevTools debugging showcase for the [TC39 / ECMA-426 Source M
    - Exercises symbolized `Error.stack` traces (caught + `console.error`, uncaught from a timer, pause on exceptions) for an error thrown from inlined code inside an outlined block, called through a runtime helper without `OriginalScope`, from a caller that has the outlined block's owner inlined.
 7. **`07-multiple-call-sites` (`multi-callsite.ts`)**:
    - Exercises a function inlined at two call sites: two inlined ranges share one `OriginalScope` with distinct `callSite`s and bindings, so one authored breakpoint (incl. conditional breakpoints and logpoints) must resolve to both copies.
+8. **`08-webassembly` (`image-filter.cpp` → `image-filter.wasm`)** *(experimental)*:
+   - Applies `scopes` to a hand-assembled WebAssembly module (built with [`src/lib/wasm.ts`](src/lib/wasm.ts)). Positions are `line 0, column = module byte offset`. Binding expressions are plain JS that V8 evaluates on the wasm frame using its wasm debug proxy (`$var0.value`, `memories[0]`, `stack[0].value`, `$_Z11adjustPixeliii`). Combines the features of the other examples: inlining with 2 call sites, a reused wasm local (`SubRangeBinding[]`), structs decoded from linear memory, nested `Block` scopes, a hidden Emscripten `legalstub$`, and a symbolized wasm trap (`divide by zero`).
 
 ## Local Development (Deno)
 

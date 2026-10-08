@@ -37,8 +37,19 @@ export async function buildSite(): Promise<void> {
       new URL("./bundle.js", exampleDir),
       example.generatedCode,
     );
+    // For wasm examples the source map belongs to the .wasm module (referenced
+    // from its "sourceMappingURL" custom section); bundle.js is plain JS glue.
+    const sourceMapFileName = example.wasm
+      ? `${example.wasm.fileName}.map`
+      : "bundle.js.map";
+    if (example.wasm) {
+      await Deno.writeFile(
+        new URL(`./${example.wasm.fileName}`, exampleDir),
+        example.wasm.bytes,
+      );
+    }
     await Deno.writeTextFile(
-      new URL("./bundle.js.map", exampleDir),
+      new URL(`./${sourceMapFileName}`, exampleDir),
       JSON.stringify(sourceMap, null, 2) + "\n",
     );
     await Deno.writeTextFile(

@@ -19,6 +19,7 @@ function comparePositions(a: Position, b: Position): number {
 
 Deno.test("No binding references a generated let/const while it is still in its TDZ", () => {
   for (const ex of getAllExamples()) {
+    if (ex.wasm) continue; // Bindings refer to wasm state, not JS let/const.
     const gen = new TextLocator(ex.generatedCode);
     const { decodedScopeInfo } = buildExampleSourceMap(ex);
 
@@ -70,7 +71,7 @@ Deno.test("No binding references a generated let/const while it is still in its 
 
 Deno.test("All examples encode and round-trip decode valid ECMA-426 scopes and ranges", () => {
   const examples = getAllExamples();
-  assert(examples.length === 7, "Expected 7 examples");
+  assert(examples.length === 8, "Expected 8 examples");
 
   for (const ex of examples) {
     const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex);
@@ -314,6 +315,7 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
   const fakeWindow: Record<string, () => unknown> = {};
 
   for (const ex of getAllExamples()) {
+    if (ex.wasm) continue; // Covered by the dedicated WebAssembly test below.
     const executableCode = ex.generatedCode.replaceAll("debugger;", "");
     const runner = new Function("window", executableCode);
     runner(fakeWindow);
@@ -390,5 +392,153 @@ Deno.test("All generated bundle.js functions execute and return expected outputs
     );
   } finally {
     console.error = originalConsoleError;
+  }
+});
+
+Deno.test("Example 08 wasm: ranges/mappings sit on instruction boundaries and the scope tree has the expected shape", () => {
+  const ex08 = getAllExamples().find((e) => e.id === "08-webassembly")!;
+  assert(ex08.wasm !== undefined, "Example 08 ships a wasm module");
+  const { sourceMap, decodedScopeInfo } = buildExampleSourceMap(ex08);
+  const { bytes, disassembly } = ex08.wasm;
+
+  // Instruction offsets, parsed from the offset-annotated disassembly.
+  const instructionOffsets = new Set(
+    disassembly.split("\n")
+      .filter((line) => /^0x[0-9a-f]+\s+[a-z]/.test(line))
+      .map((line) => parseInt(line.slice(2, line.indexOf(" ")), 16)),
+  );
+  const functionBodies = decodedScopeInfo.ranges[0].children.map((r) => r.start.column);
+  const isBoundary = (column: number) =>
+    instructionOffsets.has(column) || functionBodies.includes(column) ||
+    decodedScopeInfo.ranges[0].children.some((r) => r.end.column === column);
+
+  // Every mapping segment points at an instruction.
+  const mappingLines = decode(sourceMap.mappings);
+  assert(mappingLines.length === 1, "Wasm mappings live on a single generated line");
+  for (const segment of mappingLines[0]) {
+    assert(
+      instructionOffsets.has(segment[0]),
+      `Mapping at 0x${segment[0].toString(16)} is not an instruction start`,
+    );
+  }
+
+  // Every range and sub-range boundary is an instruction start or a function boundary.
+  const checkRange = (range: GeneratedRange) => {
+    for (const p of [range.start, range.end]) {
+      assert(p.line === 0, "Wasm range positions are on line 0");
+      if (range !== decodedScopeInfo.ranges[0]) {
+        assert(isBoundary(p.column), `Range boundary 0x${p.column.toString(16)} is not an instruction`);
+      }
+    }
+    for (const binding of range.values) {
+      if (!Array.isArray(binding)) continue;
+      for (const sub of binding) {
+        assert(isBoundary(sub.from.column), `Sub-range start 0x${sub.from.column.toString(16)}`);
+        assert(isBoundary(sub.to.column), `Sub-range end 0x${sub.to.column.toString(16)}`);
+      }
+    }
+    range.children.forEach(checkRange);
+  };
+  checkRange(decodedScopeInfo.ranges[0]);
+
+  // Shape: adjustPixel (with 2x clampLevel + applyContrast inlined), adjustImage, hidden legalstub.
+  const [adjustPixel, adjustImage, legalstub] = decodedScopeInfo.ranges[0].children;
+  assert(adjustPixel.originalScope?.name === "adjustPixel" && adjustPixel.isStackFrame, "adjustPixel frame");
+  const [clamp1, applyContrast] = adjustPixel.children;
+  const clamp2 = applyContrast.children[0];
+  assert(
+    clamp1.originalScope?.name === "clampLevel" && clamp1.originalScope === clamp2.originalScope &&
+      !clamp1.isStackFrame && !clamp2.isStackFrame && clamp1.callSite && clamp2.callSite &&
+      clamp1.callSite.line !== clamp2.callSite.line,
+    "clampLevel is inlined at two distinct call sites",
+  );
+  assert(applyContrast.originalScope?.name === "applyContrast" && applyContrast.callSite, "applyContrast inlined");
+  assert(adjustImage.originalScope?.name === "adjustImage" && adjustImage.isStackFrame, "adjustImage frame");
+  assert(
+    adjustImage.children[0].originalScope?.kind === "Block" &&
+      adjustImage.children[0].children[0].originalScope?.kind === "Block",
+    "adjustImage has nested for/body Block ranges",
+  );
+  const averageLevel = adjustImage.children[1];
+  assert(averageLevel.originalScope?.name === "averageLevel" && averageLevel.callSite, "averageLevel inlined");
+  assert(bytes[averageLevel.start.column] === 0x7f, "averageLevel range starts at the trapping i64.div_s");
+  assert(
+    legalstub.isHidden && legalstub.isStackFrame && !legalstub.originalScope,
+    "legalstub$adjustImage is a hidden range without an OriginalScope",
+  );
+
+  // The module references its source map via the "sourceMappingURL" custom section.
+  assert(
+    new TextDecoder().decode(bytes).includes("sourceMappingURL\u0015image-filter.wasm.map"),
+    "sourceMappingURL custom section points at image-filter.wasm.map",
+  );
+});
+
+Deno.test("Example 08 wasm: the module and its JS glue compute the expected results and trap on empty images", async () => {
+  const ex08 = getAllExamples().find((e) => e.id === "08-webassembly")!;
+  const wasmBytes = ex08.wasm!.bytes;
+  const fakeWindow: Record<string, () => unknown> = {};
+  const fakeFetch = () =>
+    Promise.resolve(
+      new Response(wasmBytes, { headers: { "Content-Type": "application/wasm" } }),
+    );
+
+  let pixelsAtPause: number[] = [];
+  const glue = ex08.generatedCode.replace(
+    "debugger;",
+    "globalThis.__onPause();",
+  );
+  (globalThis as Record<string, unknown>).__onPause = () => {
+    pixelsAtPause = [...new Uint8Array(memory().buffer, 2064, 4)];
+  };
+  let instanceMemory: WebAssembly.Memory | undefined;
+  const memory = () => instanceMemory!;
+  const realInstantiateStreaming = WebAssembly.instantiateStreaming;
+  WebAssembly.instantiateStreaming = async (source, imports) => {
+    const result = await realInstantiateStreaming(source, imports);
+    instanceMemory = result.instance.exports.memory as WebAssembly.Memory;
+    return result;
+  };
+  try {
+    new Function("window", "fetch", glue)(fakeWindow, fakeFetch);
+    for (let i = 0; i < 50 && !instanceMemory; i++) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+
+    const res = fakeWindow.runExample08() as {
+      checksum: number;
+      pixels: number[];
+      lastAverage: number;
+      imagesProcessed: number;
+    };
+    assert(res.checksum === 712, `Ex08 checksum, got ${res.checksum}`);
+    assert(res.pixels.join() === "41,161,255,255", `Ex08 pixels, got ${res.pixels}`);
+    assert(res.lastAverage === 178, "Ex08 lastAverage");
+    assert(res.imagesProcessed === 1, "Ex08 imagesProcessed");
+    assert(
+      pixelsAtPause.join() === "41,161,255,250",
+      `emscripten_debugger() runs once, after pixel 2, got ${pixelsAtPause}`,
+    );
+
+    const originalConsoleError = console.error;
+    const logged: unknown[] = [];
+    console.error = (e: unknown) => logged.push(e);
+    try {
+      const stack = fakeWindow.logStackExample08() as string;
+      assert(
+        logged.length === 1 && logged[0] instanceof WebAssembly.RuntimeError &&
+          /divide by zero/.test(logged[0].message),
+        "Ex08 traps with 'divide by zero' for an empty image",
+      );
+      assert(
+        stack.includes("adjustImage") && stack.includes("legalstub$adjustImage"),
+        `Ex08 raw stack contains the wasm frames, got ${stack}`,
+      );
+    } finally {
+      console.error = originalConsoleError;
+    }
+  } finally {
+    WebAssembly.instantiateStreaming = realInstantiateStreaming;
+    delete (globalThis as Record<string, unknown>).__onPause;
   }
 });
